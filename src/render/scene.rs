@@ -1,8 +1,17 @@
 use crate::math;
 
 #[derive(Debug)]
+pub struct Camera {
+    pub position: math::Vector3,
+    pub target: math::Vector3,
+    pub field_of_vision: f32,
+    pub aspect_ratio: f32,
+}
+
+#[derive(Debug)]
 pub struct Scene {
     pub objects: Vec<Object>,
+    pub camera: Camera,
 }
 
 #[derive(Debug)]
@@ -24,17 +33,123 @@ pub struct Object {
     pub faces: Vec<Face>,
     pub vertex_normals: Vec<math::Vector4>,
     pub uvs: Vec<math::Point>,
+    pub texture: super::Texture,
+}
+
+impl Camera {
+    pub fn new() -> Camera {
+        Camera {
+            position: math::Vector3 { x: 0.0, y: 0.0, z: 1.0 },
+            target: math::Vector3 { x: 0.0, y: 0.0, z: 0.0},
+            field_of_vision: 60.0,
+            aspect_ratio: 3.0 / 2.0,
+        }
+    }
 }
 
 impl Scene {
     pub fn new() -> Scene {
         let objs: Vec<Object> = vec![];
 
-        Scene { objects: objs }
+        Scene { objects: objs, camera: Camera::new() }
     }
 
     pub fn add_object(&mut self, object: Object) {
         self.objects.push(object)
+    }
+
+    pub fn draw(&self, mut render_target: &mut super::RenderTarget) {
+
+        let aspect_ratio = render_target.width as f32 / render_target.height as f32;
+
+        let identity_matrix = math::Matrix4::identity();
+        let view_matrix = math::Matrix4::lookat(self.camera.position, self.camera.target);
+        let view_rotation_matrix = math::Matrix4::lookat_rot(self.camera.position, self.camera.target);
+        let projection_matrix = math::Matrix4::projection(self.camera.field_of_vision / 180.0 * std::f32::consts::PI, aspect_ratio, 0.5, 1000.0);
+        let final_matrix = identity_matrix.multiply(view_matrix).multiply(projection_matrix);
+
+        let fw = render_target.width as f32;
+        let fh = render_target.height as f32;
+
+        for obj in self.objects.iter() {
+            let mut transformed_vertices: Vec<math::Vector4> = Vec::with_capacity(obj.vertices.len());
+
+            for vertex in obj.vertices.iter() {
+                let tv = vertex.multiply(final_matrix);
+                transformed_vertices.push(tv);
+            }
+
+            let mut transformed_normals: Vec<math::Vector4> = Vec::with_capacity(obj.vertex_normals.len());
+            for vnormal in obj.vertex_normals.iter() {
+                let tv = vnormal.multiply(view_rotation_matrix);
+                transformed_normals.push(tv);
+            }
+
+            for face in obj.faces.iter() {
+                let v1 = transformed_vertices[face.v0 as usize];
+                let v2 = transformed_vertices[face.v1 as usize];
+                let v3 = transformed_vertices[face.v2 as usize];
+
+                let ax1 = v3.sub(v1);
+                let ax2 = v2.sub(v1);
+                let cp = ax2.normal().cross(ax1.normal());
+
+                //log!("cp {:?}", cp);
+                // if cp.z > 0.0 {
+                //     continue;
+                // }
+
+                if v1.z < 0.0 || v2.z < 0.0 || v3.z < 0.0  {
+                    continue;
+                }
+
+                if v1.x.abs() > v1.w.abs() && v1.y.abs() > v1.w.abs()
+                    && v2.x.abs() > v2.w.abs() && v2.y.abs() > v2.w.abs()
+                    && v3.x.abs() > v3.w.abs() && v3.y.abs() > v3.w.abs() {
+                    continue;
+                }
+
+                let x1 = (v1.x / v1.w) * (fw / 2.0) + (fw / 2.0);  
+                let y1 = (v1.y / v1.w) * (fh / 2.0) + (fh / 2.0);  
+
+                let x2 = (v2.x / v2.w) * (fw / 2.0) + (fw / 2.0);  
+                let y2 = (v2.y / v2.w) * (fh / 2.0) + (fh / 2.0);  
+
+                let x3 = (v3.x / v3.w) * (fw / 2.0) + (fw / 2.0);  
+                let y3 = (v3.y / v3.w) * (fh / 2.0) + (fh / 2.0);  
+
+                // let mut c = render::Color { r: (cp.z.abs() * 255.0) as u8, b: (cp.z.abs() * 0.0) as u8, g: (cp.z.abs() * 0.0) as u8, a: 255 };
+                // if i % 2 == 1 
+                // { 
+                //     c = render::Color { r: (cp.z.abs() * 0.0) as u8, b: (cp.z.abs() * 255.0) as u8, g: (cp.z.abs() * 0.0) as u8, a: 255 }
+                // }
+                // render::draw_triangle_barycentric_z(&mut current_target,
+                //     &c,
+                //     math::Vector3{ x: x1, y: y1, z: v1.z / v1.w},
+                //     math::Vector3{ x: x2, y: y2, z: v2.z / v2.w},
+                //     math::Vector3{ x: x3, y: y3, z: v3.z / v3.w}
+                //     );
+
+                let euv0 = math::Point { x: (transformed_normals[face.vn0 as usize].x / -2.0) + 0.5, y: (transformed_normals[face.vn0 as usize].y / -2.0) + 0.5};
+                let euv1 = math::Point { x: (transformed_normals[face.vn1 as usize].x / -2.0) + 0.5, y: (transformed_normals[face.vn1 as usize].y / -2.0) + 0.5};
+                let euv2 = math::Point { x: (transformed_normals[face.vn2 as usize].x / -2.0) + 0.5, y: (transformed_normals[face.vn2 as usize].y / -2.0) + 0.5};
+
+                // let euv0 = obj.uvs[face.uv0 as usize]
+                // let euv0 = obj.uvs[face.uv1 as usize]
+                // let euv0 = obj.uvs[face.uv2 as usize]
+
+                super::draw_triangle_barycentric_z_uv(render_target,
+                    &obj.texture,
+                    math::Vector3{ x: x1, y: y1, z: v1.z / v1.w},
+                    math::Vector3{ x: x2, y: y2, z: v2.z / v2.w},
+                    math::Vector3{ x: x3, y: y3, z: v3.z / v3.w},
+                    euv0,
+                    euv1,
+                    euv2,
+                    );
+            }
+        }
+
     }
 }
 
@@ -45,7 +160,7 @@ impl Object {
         let vns: Vec<math::Vector4> = Vec::new();
         let uvs: Vec<math::Point> = Vec::new();
 
-        Object { vertices: vs, faces: fs, vertex_normals: vns, uvs: uvs }
+        Object { vertices: vs, faces: fs, vertex_normals: vns, uvs: uvs, texture: super::Texture::new() }
     }
 }
 

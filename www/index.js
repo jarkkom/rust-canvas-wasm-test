@@ -16,11 +16,16 @@ const ctx = canvas.getContext('2d');
 let frame = 0;
 
 const loop = () => {
+    // renderer.setCameraPosition(
+    //     Math.cos(2 * Math.PI * frame / 512) * 250,
+    //     150 + Math.sin(2 * Math.PI * frame / 512),
+    //     Math.sin(2 * Math.PI * frame / 512) * 250);
+    // renderer.setCameraTarget(0, 100, 0);
     renderer.setCameraPosition(
-        Math.cos(2 * Math.PI * frame / 512) * 250,
-        150 + Math.sin(2 * Math.PI * frame / 512),
-        Math.sin(2 * Math.PI * frame / 512) * 250);
-    renderer.setCameraTarget(0, 100, 0);
+        Math.cos(2 * Math.PI * frame / 512) * 2.5,
+        1.50 + Math.sin(2 * Math.PI * frame / 512),
+        Math.sin(2 * Math.PI * frame / 300) * 2.50);
+    renderer.setCameraTarget(0, 0, 0);
     renderer.render();
     frame++;
 
@@ -53,13 +58,11 @@ const rustTexture = new Promise((resolve, reject) => {
     };
 });
 
-const objs = [catsObject, rustTexture];
+const objs = [rustTexture, torusObject, cubeObject];
 
 Promise.all(objs).then((values) => {
-    renderer.add_obj(values[0]);
-    console.log(values[1]);
-    renderer.setTexture(values[1].data, values[1].width, values[1].height);
-    // renderer.add_obj(values[2]);
+    renderer.add_obj(values[1], values[0].data, values[0].width, values[0].height);
+    renderer.add_obj(values[2], values[0].data, values[0].width, values[0].height);
     loop();
 }).catch((reason) => {
     console.log(reason);

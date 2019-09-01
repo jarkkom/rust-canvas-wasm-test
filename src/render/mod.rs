@@ -18,10 +18,21 @@ pub struct Color {
     pub a: u8,
 }
 
+#[derive(Debug)]
 pub struct Texture {
     pub width: u32,
     pub height: u32,
     pub data: Vec<u8>,
+}
+
+impl Texture {
+    pub fn new() -> Texture {
+        Texture {
+            width: 0,
+            height: 0,
+            data: vec![],
+        }
+    }
 }
 
 // render top half of triangle (y2 == y3)

@@ -185,9 +185,9 @@ impl CanvasRenderer {
                 //     math::Vector3{ x: x3, y: y3, z: v3.z / v3.w}
                 //     );
 
-                let euv0 = math::Point { x: tvns[face.vn0 as usize].x + 0.5, y: tvns[face.vn0 as usize].y + 0.5};
-                let euv1 = math::Point { x: tvns[face.vn1 as usize].x + 0.5, y: tvns[face.vn1 as usize].y + 0.5};
-                let euv2 = math::Point { x: tvns[face.vn2 as usize].x + 0.5, y: tvns[face.vn2 as usize].y + 0.5};
+                let euv0 = math::Point { x: (tvns[face.vn0 as usize].x / -2.0) + 0.5, y: (tvns[face.vn0 as usize].y / -2.0) + 0.5};
+                let euv1 = math::Point { x: (tvns[face.vn1 as usize].x / -2.0) + 0.5, y: (tvns[face.vn1 as usize].y / -2.0) + 0.5};
+                let euv2 = math::Point { x: (tvns[face.vn2 as usize].x / -2.0) + 0.5, y: (tvns[face.vn2 as usize].y / -2.0) + 0.5};
 
                 // let euv0 = obj.uvs[face.uv0 as usize]
                 // let euv0 = obj.uvs[face.uv1 as usize]

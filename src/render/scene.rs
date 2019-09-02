@@ -58,7 +58,63 @@ impl Scene {
         self.objects.push(object)
     }
 
-    pub fn draw(&self, mut render_target: &mut super::RenderTarget) {
+    fn clip(v: Vec<math::Vector4>) -> Vec<math::Vector4> {
+        let mut vv = Vec::with_capacity(5);
+
+        //crate::log!("{:?}", v);
+
+        for i in 0..v.len() {
+            let dot_current = if v[i].z < v[i].w { 1.0 } else { -1.0 };
+
+            let prev_i = if i > 0 { i - 1 } else { v.len() - 1 };
+            let dot_prev = if v[prev_i].z < v[prev_i].w { 1.0 } else { -1.0 };
+
+            //crate::log!("1 dot current {:?} dot prev {:?} mult {:?} prev_i {:?}", dot_current, dot_prev, dot_current * dot_prev, prev_i);
+
+            if dot_current * dot_prev < 0.0 {
+                // gotta clip
+                let a = v[prev_i].w - v[prev_i].z / (v[prev_i].w - v[prev_i].z) - (v[i].w - v[i].z); 
+
+                let intersect = v[i].sub(v[prev_i]).scale(a).add(v[prev_i]);
+                vv.push(intersect);
+            }
+            if dot_current < 0.0 {
+                vv.push(v[i]);
+            }
+        }
+
+        //crate::log!("vv {:?}", vv);
+
+        if vv.len() == 0 { return vv };
+
+        let mut clipped = Vec::with_capacity(6);
+
+        for i in 0..vv.len() {
+            let dot_current = if (-vv[i].z) > vv[i].w { 1.0 } else { -1.0 };
+
+            let prev_i = if i > 0 { i - 1 } else { vv.len() - 1 };
+            let dot_prev = if (-vv[prev_i].z) > vv[prev_i].w { 1.0 } else { -1.0 };
+
+            //crate::log!("2 dot current {:?} dot prev {:?} mult {:?} prev_i {:?}", dot_current, dot_prev, dot_current * dot_prev, prev_i);
+
+            if dot_current * dot_prev < 0.0 {
+                // gotta clip
+                let a = vv[prev_i].w + vv[prev_i].z / (vv[prev_i].w + vv[prev_i].z) - (vv[i].w + vv[i].z); 
+
+                let intersect = vv[i].sub(vv[prev_i]).scale(a).add(vv[prev_i]);
+                clipped.push(intersect);
+            }
+            if dot_current > 0.0 {
+                clipped.push(vv[i]);
+            }
+        }
+
+        //crate::log!("vv2 {:?}", clipped);
+
+        return clipped;
+    }
+
+    pub fn draw(&self, render_target: &mut super::RenderTarget) {
 
         let aspect_ratio = render_target.width as f32 / render_target.height as f32;
 
@@ -86,22 +142,34 @@ impl Scene {
             }
 
             for face in obj.faces.iter() {
-                let v1 = transformed_vertices[face.v0 as usize];
-                let v2 = transformed_vertices[face.v1 as usize];
-                let v3 = transformed_vertices[face.v2 as usize];
+                let cv1 = transformed_vertices[face.v0 as usize];
+                let cv2 = transformed_vertices[face.v1 as usize];
+                let cv3 = transformed_vertices[face.v2 as usize];
 
-                let ax1 = v3.sub(v1);
-                let ax2 = v2.sub(v1);
-                let cp = ax2.normal().cross(ax1.normal());
+                // let ax1 = v3.sub(v1);
+                // let ax2 = v2.sub(v1);
+                // let cp = ax2.normal().cross(ax1.normal());
 
                 //log!("cp {:?}", cp);
                 // if cp.z > 0.0 {
                 //     continue;
                 // }
 
-                if v1.z < 0.0 || v2.z < 0.0 || v3.z < 0.0  {
+                let clipped = self::Scene::clip(vec![cv1, cv2, cv3]);
+
+                //crate::log!("postclip {:?}", clipped);
+
+                if clipped.len() == 0 {
                     continue;
                 }
+
+                let v1 = clipped[0];
+                let v2 = clipped[1];
+                let v3 = clipped[2];
+
+                // if v1.z < 0.0 || v2.z < 0.0 || v3.z < 0.0  {
+                //     continue;
+                // }
 
                 if v1.x.abs() > v1.w.abs() && v1.y.abs() > v1.w.abs()
                     && v2.x.abs() > v2.w.abs() && v2.y.abs() > v2.w.abs()

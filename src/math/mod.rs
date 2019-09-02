@@ -135,12 +135,12 @@ impl Vector4 {
     }
   }
 
-  pub fn cross(&self, v: Vector4) -> Vector4 {
+  pub fn add(&self, v: Vector4) -> Vector4 {
     Vector4 {
-      x: self.y * v.z - self.z * v.y,
-      y: self.x * v.z - self.z * v.x,
-      z: self.x * v.y - self.y * v.x,
-      w: 1.0,
+      x: self.x + v.x,
+      y: self.y + v.y,
+      z: self.z + v.z,
+      w: self.w + v.w,
     }
   }
 
@@ -149,7 +149,16 @@ impl Vector4 {
       x: self.x - v.x,
       y: self.y - v.y,
       z: self.z - v.z,
-      w: 1.0,
+      w: self.w - v.w,
+    }
+  }
+
+  pub fn scale(&self, a: f32) -> Vector4 {
+    Vector4 {
+      x: self.x * a,
+      y: self.y * a,
+      z: self.z * a,
+      w: self.w * a,
     }
   }
 
@@ -227,9 +236,9 @@ impl Matrix4 {
     Matrix4 {
       m: [
         [f / aspect, 0.0, 0.0, 0.0],
-        [0.0, f, 0.0, 0.0],
-        [0.0, 0.0, (-near - far) * inv_r, -1.0],
-        [0.0, 0.0, 2.0 * near * far * inv_r, 0.0],
+        [0.0, -f, 0.0, 0.0],
+        [0.0, 0.0, far / (far - near), 1.0],
+        [0.0, 0.0, near * far * inv_r, 0.0],
         ]
     }
   }

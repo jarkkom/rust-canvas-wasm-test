@@ -85,7 +85,7 @@ impl CanvasRenderer {
         };
         
         // zero
-        current_target.depth.resize((self.width() * self.height()) as usize, std::f32::NEG_INFINITY);
+        current_target.depth.resize((self.width() * self.height()) as usize, std::f32::INFINITY);
 
         // zero
         for p in current_target.buffer.chunks_exact_mut(4) {

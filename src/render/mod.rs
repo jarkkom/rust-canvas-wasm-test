@@ -367,7 +367,7 @@ pub fn draw_triangle_barycentric_z_uv(target: &mut RenderTarget, texture: &Textu
                 let u = ((tu0 + ttu1 * w1 as f32 + ttu2 * w2 as f32) * texture.width as f32) as u32 & (texture.width - 1);
                 let v = ((tv0 + ttv1 * w1 as f32 + ttv2 * w2 as f32) * texture.height as f32) as u32 & (texture.height - 1);
 
-                if *depth_buffer < z {
+                if *depth_buffer >= z {
                     x[0] = texture.data[((v * texture.width) + u) as usize * 4 + 0];
                     x[1] = texture.data[((v * texture.width) + u) as usize * 4 + 1];
                     x[2] = texture.data[((v * texture.width) + u) as usize * 4 + 2];

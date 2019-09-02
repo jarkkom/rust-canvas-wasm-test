@@ -65,7 +65,7 @@ impl Scene {
         let identity_matrix = math::Matrix4::identity();
         let view_matrix = math::Matrix4::lookat(self.camera.position, self.camera.target);
         let view_rotation_matrix = math::Matrix4::lookat_rot(self.camera.position, self.camera.target);
-        let projection_matrix = math::Matrix4::projection(self.camera.field_of_vision / 180.0 * std::f32::consts::PI, aspect_ratio, 0.5, 1000.0);
+        let projection_matrix = math::Matrix4::projection(self.camera.field_of_vision / 180.0 * std::f32::consts::PI, aspect_ratio, 0.1, 100.0);
         let final_matrix = identity_matrix.multiply(view_matrix).multiply(projection_matrix);
 
         let fw = render_target.width as f32;
@@ -267,43 +267,43 @@ impl ObjLoader {
                     if entry_data.len() == 3 {
                         // triangle
                         let face = Face {
-                            v0: i1 - 1,
+                            v0: i3 - 1,
                             v1: i2 - 1,
-                            v2: i3 - 1,
-                            vn0: vni1 - 1,
+                            v2: i1 - 1,
+                            vn0: vni3 - 1,
                             vn1: vni2 - 1,
-                            vn2: vni3 - 1,
-                            uv0: uvi1 - 1,
+                            vn2: vni1 - 1,
+                            uv0: uvi3 - 1,
                             uv1: uvi2 - 1,
-                            uv2: uvi3 - 1,
+                            uv2: uvi1 - 1,
                         };
                         obj.faces.push(face);
                     } else if entry_data.len() == 4 {
                         let (i4, uvi4, vni4) = self::ObjLoader::parse_face_indexes(entry_data[3]);
 
                         let face = Face {
-                            v0: i1 - 1,
+                            v0: i4 - 1,
                             v1: i2 - 1,
-                            v2: i4 - 1,
-                            vn0: vni1 - 1,
+                            v2: i1 - 1,
+                            vn0: vni4 - 1,
                             vn1: vni2 - 1,
-                            vn2: vni4 - 1,
-                            uv0: uvi1 - 1,
+                            vn2: vni1 - 1,
+                            uv0: uvi4 - 1,
                             uv1: uvi2 - 1,
-                            uv2: uvi4 - 1,
+                            uv2: uvi1 - 1,
                         };
                         obj.faces.push(face);
 
                         let face2 = Face {
-                            v0: i2 - 1,
+                            v0: i4 - 1,
                             v1: i3 - 1,
-                            v2: i4 - 1,
-                            vn0: vni2 - 1,
+                            v2: i2 - 1,
+                            vn0: vni4 - 1,
                             vn1: vni3 - 1,
-                            vn2: vni4 - 1,
-                            uv0: uvi2 - 1,
+                            vn2: vni2 - 1,
+                            uv0: uvi4 - 1,
                             uv1: uvi3 - 1,
-                            uv2: uvi4 - 1,
+                            uv2: uvi2 - 1,
                         };
                         obj.faces.push(face2);
                     }

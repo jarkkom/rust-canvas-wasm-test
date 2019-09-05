@@ -59,59 +59,33 @@ impl Scene {
     }
 
     fn clip(v: Vec<math::Vector4>) -> Vec<math::Vector4> {
-        let mut vv = Vec::with_capacity(5);
+        let plane = math::Vector4{ x: 0.0, y: 0.0, z: 1.0, w: 0.0 };
 
-        //crate::log!("{:?}", v);
+        let mut out = Vec::with_capacity(v.len() + 1);
 
         for i in 0..v.len() {
-            let dot_current = if v[i].z < v[i].w { 1.0 } else { -1.0 };
+            let next_i = (i + 1) % v.len();
 
-            let prev_i = if i > 0 { i - 1 } else { v.len() - 1 };
-            let dot_prev = if v[prev_i].z < v[prev_i].w { 1.0 } else { -1.0 };
+            let dot = plane.dot(v[i]) - plane.w;
+            let dot_next = plane.dot(v[next_i]) - plane.w;
 
-            //crate::log!("1 dot current {:?} dot prev {:?} mult {:?} prev_i {:?}", dot_current, dot_prev, dot_current * dot_prev, prev_i);
-
-            if dot_current * dot_prev < 0.0 {
-                // gotta clip
-                let a = v[prev_i].w - v[prev_i].z / (v[prev_i].w - v[prev_i].z) - (v[i].w - v[i].z); 
-
-                let intersect = v[i].sub(v[prev_i]).scale(a).add(v[prev_i]);
-                vv.push(intersect);
+            if dot > 0.0 {
+                out.push(v[i]);
             }
-            if dot_current < 0.0 {
-                vv.push(v[i]);
+            if dot < 0.0 && dot_next < 0.0 {
+                continue;
             }
-        }
+            if dot.signum() != dot_next.signum() {
+                let a = -(dot) / (dot_next - dot);
 
-        //crate::log!("vv {:?}", vv);
+                //crate::log!("{:?}", a);
 
-        if vv.len() == 0 { return vv };
-
-        let mut clipped = Vec::with_capacity(6);
-
-        for i in 0..vv.len() {
-            let dot_current = if (-vv[i].z) > vv[i].w { 1.0 } else { -1.0 };
-
-            let prev_i = if i > 0 { i - 1 } else { vv.len() - 1 };
-            let dot_prev = if (-vv[prev_i].z) > vv[prev_i].w { 1.0 } else { -1.0 };
-
-            //crate::log!("2 dot current {:?} dot prev {:?} mult {:?} prev_i {:?}", dot_current, dot_prev, dot_current * dot_prev, prev_i);
-
-            if dot_current * dot_prev < 0.0 {
-                // gotta clip
-                let a = vv[prev_i].w + vv[prev_i].z / (vv[prev_i].w + vv[prev_i].z) - (vv[i].w + vv[i].z); 
-
-                let intersect = vv[i].sub(vv[prev_i]).scale(a).add(vv[prev_i]);
-                clipped.push(intersect);
-            }
-            if dot_current > 0.0 {
-                clipped.push(vv[i]);
+                let intersect = v[next_i].sub(v[i]).scale(a).add(v[i]);
+                out.push(intersect);
             }
         }
 
-        //crate::log!("vv2 {:?}", clipped);
-
-        return clipped;
+        return out;
     }
 
     pub fn draw(&self, render_target: &mut super::RenderTarget) {
@@ -121,7 +95,7 @@ impl Scene {
         let identity_matrix = math::Matrix4::identity();
         let view_matrix = math::Matrix4::lookat(self.camera.position, self.camera.target);
         let view_rotation_matrix = math::Matrix4::lookat_rot(self.camera.position, self.camera.target);
-        let projection_matrix = math::Matrix4::projection(self.camera.field_of_vision / 180.0 * std::f32::consts::PI, aspect_ratio, 0.1, 100.0);
+        let projection_matrix = math::Matrix4::projection(self.camera.field_of_vision / 180.0 * std::f32::consts::PI, aspect_ratio, 0.5, 100.0);
         let final_matrix = identity_matrix.multiply(view_matrix).multiply(projection_matrix);
 
         let fw = render_target.width as f32;
@@ -157,67 +131,67 @@ impl Scene {
 
                 let clipped = self::Scene::clip(vec![cv1, cv2, cv3]);
 
-                //crate::log!("postclip {:?}", clipped);
-
                 if clipped.len() == 0 {
                     continue;
                 }
 
-                let v1 = clipped[0];
-                let v2 = clipped[1];
-                let v3 = clipped[2];
+                for i in 0..clipped.len() - 2 {
+                    let v1 = clipped[0];
+                    let v2 = clipped[i+1];
+                    let v3 = clipped[i+2];
 
-                // if v1.z < 0.0 || v2.z < 0.0 || v3.z < 0.0  {
-                //     continue;
-                // }
+                    // if v1.z < 0.0 || v2.z < 0.0 || v3.z < 0.0  {
+                    //     continue;
+                    // }
 
-                if v1.x.abs() > v1.w.abs() && v1.y.abs() > v1.w.abs()
-                    && v2.x.abs() > v2.w.abs() && v2.y.abs() > v2.w.abs()
-                    && v3.x.abs() > v3.w.abs() && v3.y.abs() > v3.w.abs() {
-                    continue;
+/*
+                    if v1.x.abs() > v1.w.abs() && v1.y.abs() > v1.w.abs()
+                        && v2.x.abs() > v2.w.abs() && v2.y.abs() > v2.w.abs()
+                        && v3.x.abs() > v3.w.abs() && v3.y.abs() > v3.w.abs() {
+                        continue;
+                    }
+*/
+                    let x1 = (v1.x / v1.w) * (fw / 2.0) + (fw / 2.0);  
+                    let y1 = (v1.y / v1.w) * (fh / 2.0) + (fh / 2.0);  
+
+                    let x2 = (v2.x / v2.w) * (fw / 2.0) + (fw / 2.0);  
+                    let y2 = (v2.y / v2.w) * (fh / 2.0) + (fh / 2.0);  
+
+                    let x3 = (v3.x / v3.w) * (fw / 2.0) + (fw / 2.0);  
+                    let y3 = (v3.y / v3.w) * (fh / 2.0) + (fh / 2.0);  
+
+                    // let mut c = render::Color { r: (cp.z.abs() * 255.0) as u8, b: (cp.z.abs() * 0.0) as u8, g: (cp.z.abs() * 0.0) as u8, a: 255 };
+                    // if i % 2 == 1 
+                    // { 
+                    //     c = render::Color { r: (cp.z.abs() * 0.0) as u8, b: (cp.z.abs() * 255.0) as u8, g: (cp.z.abs() * 0.0) as u8, a: 255 }
+                    // }
+                    // render::draw_triangle_barycentric_z(&mut current_target,
+                    //     &c,
+                    //     math::Vector3{ x: x1, y: y1, z: v1.z / v1.w},
+                    //     math::Vector3{ x: x2, y: y2, z: v2.z / v2.w},
+                    //     math::Vector3{ x: x3, y: y3, z: v3.z / v3.w}
+                    //     );
+
+                    let euv0 = math::Point { x: (transformed_normals[face.vn0 as usize].x / -2.0) + 0.5, y: (transformed_normals[face.vn0 as usize].y / -2.0) + 0.5};
+                    let euv1 = math::Point { x: (transformed_normals[face.vn1 as usize].x / -2.0) + 0.5, y: (transformed_normals[face.vn1 as usize].y / -2.0) + 0.5};
+                    let euv2 = math::Point { x: (transformed_normals[face.vn2 as usize].x / -2.0) + 0.5, y: (transformed_normals[face.vn2 as usize].y / -2.0) + 0.5};
+
+                    // let euv0 = obj.uvs[face.uv0 as usize]
+                    // let euv0 = obj.uvs[face.uv1 as usize]
+                    // let euv0 = obj.uvs[face.uv2 as usize]
+
+                    super::draw_triangle_barycentric_z_uv(render_target,
+                        &obj.texture,
+                        math::Vector3{ x: x1, y: y1, z: v1.z / v1.w},
+                        math::Vector3{ x: x2, y: y2, z: v2.z / v2.w},
+                        math::Vector3{ x: x3, y: y3, z: v3.z / v3.w},
+                        euv0,
+                        euv1,
+                        euv2,
+                        );
                 }
-
-                let x1 = (v1.x / v1.w) * (fw / 2.0) + (fw / 2.0);  
-                let y1 = (v1.y / v1.w) * (fh / 2.0) + (fh / 2.0);  
-
-                let x2 = (v2.x / v2.w) * (fw / 2.0) + (fw / 2.0);  
-                let y2 = (v2.y / v2.w) * (fh / 2.0) + (fh / 2.0);  
-
-                let x3 = (v3.x / v3.w) * (fw / 2.0) + (fw / 2.0);  
-                let y3 = (v3.y / v3.w) * (fh / 2.0) + (fh / 2.0);  
-
-                // let mut c = render::Color { r: (cp.z.abs() * 255.0) as u8, b: (cp.z.abs() * 0.0) as u8, g: (cp.z.abs() * 0.0) as u8, a: 255 };
-                // if i % 2 == 1 
-                // { 
-                //     c = render::Color { r: (cp.z.abs() * 0.0) as u8, b: (cp.z.abs() * 255.0) as u8, g: (cp.z.abs() * 0.0) as u8, a: 255 }
-                // }
-                // render::draw_triangle_barycentric_z(&mut current_target,
-                //     &c,
-                //     math::Vector3{ x: x1, y: y1, z: v1.z / v1.w},
-                //     math::Vector3{ x: x2, y: y2, z: v2.z / v2.w},
-                //     math::Vector3{ x: x3, y: y3, z: v3.z / v3.w}
-                //     );
-
-                let euv0 = math::Point { x: (transformed_normals[face.vn0 as usize].x / -2.0) + 0.5, y: (transformed_normals[face.vn0 as usize].y / -2.0) + 0.5};
-                let euv1 = math::Point { x: (transformed_normals[face.vn1 as usize].x / -2.0) + 0.5, y: (transformed_normals[face.vn1 as usize].y / -2.0) + 0.5};
-                let euv2 = math::Point { x: (transformed_normals[face.vn2 as usize].x / -2.0) + 0.5, y: (transformed_normals[face.vn2 as usize].y / -2.0) + 0.5};
-
-                // let euv0 = obj.uvs[face.uv0 as usize]
-                // let euv0 = obj.uvs[face.uv1 as usize]
-                // let euv0 = obj.uvs[face.uv2 as usize]
-
-                super::draw_triangle_barycentric_z_uv(render_target,
-                    &obj.texture,
-                    math::Vector3{ x: x1, y: y1, z: v1.z / v1.w},
-                    math::Vector3{ x: x2, y: y2, z: v2.z / v2.w},
-                    math::Vector3{ x: x3, y: y3, z: v3.z / v3.w},
-                    euv0,
-                    euv1,
-                    euv2,
-                    );
             }
         }
-
     }
 }
 

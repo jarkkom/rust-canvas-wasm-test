@@ -59,7 +59,7 @@ impl Scene {
     }
 
     fn clip(v: Vec<math::Vector4>) -> Vec<math::Vector4> {
-        let plane = math::Vector4{ x: 0.0, y: 0.0, z: 1.0, w: 0.0 };
+        let plane = math::Vector4{ x: 0.0, y: 0.0, z: 1.0, w: 0.5 };
 
         let mut out = Vec::with_capacity(v.len() + 1);
 
@@ -69,7 +69,7 @@ impl Scene {
             let dot = plane.dot(v[i]) - plane.w;
             let dot_next = plane.dot(v[next_i]) - plane.w;
 
-            if dot > 0.0 {
+            if dot >= 0.0 {
                 out.push(v[i]);
             }
             if dot < 0.0 && dot_next < 0.0 {
@@ -77,9 +77,6 @@ impl Scene {
             }
             if dot.signum() != dot_next.signum() {
                 let a = -(dot) / (dot_next - dot);
-
-                //crate::log!("{:?}", a);
-
                 let intersect = v[next_i].sub(v[i]).scale(a).add(v[i]);
                 out.push(intersect);
             }

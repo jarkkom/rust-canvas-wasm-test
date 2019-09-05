@@ -237,7 +237,7 @@ impl Matrix4 {
       m: [
         [f / aspect, 0.0, 0.0, 0.0],
         [0.0, -f, 0.0, 0.0],
-        [0.0, 0.0, far / (far - near), 1.0],
+        [0.0, 0.0, (far) / (far-near), 1.0],
         [0.0, 0.0, near * far * inv_r, 0.0],
         ]
     }

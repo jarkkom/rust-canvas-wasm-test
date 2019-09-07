@@ -63,10 +63,10 @@ impl Scene {
         let aspect_ratio = render_target.width as f32 / render_target.height as f32;
 
         let identity_matrix = math::Matrix4::identity();
-        let view_matrix = math::Matrix4::lookat(self.camera.position, self.camera.target);
-        let view_rotation_matrix = math::Matrix4::lookat_rot(self.camera.position, self.camera.target);
+        let view_matrix = math::Matrix4::lookat(&self.camera.position, &self.camera.target);
+        let view_rotation_matrix = math::Matrix4::lookat_rot(&self.camera.position, &self.camera.target);
         let projection_matrix = math::Matrix4::projection(self.camera.field_of_vision / 180.0 * std::f32::consts::PI, aspect_ratio, 0.1, 100.0);
-        let final_matrix = identity_matrix.multiply(view_matrix).multiply(projection_matrix);
+        let final_matrix = identity_matrix.multiply(&view_matrix).multiply(&projection_matrix);
 
         let fw = render_target.width as f32;
         let fh = render_target.height as f32;
@@ -75,24 +75,24 @@ impl Scene {
             let mut transformed_vertices: Vec<math::Vector4> = Vec::with_capacity(obj.vertices.len());
 
             for vertex in obj.vertices.iter() {
-                let tv = vertex.multiply(final_matrix);
+                let tv = vertex.multiply(&final_matrix);
                 transformed_vertices.push(tv);
             }
 
             let mut transformed_normals: Vec<math::Vector4> = Vec::with_capacity(obj.vertex_normals.len());
             for vnormal in obj.vertex_normals.iter() {
-                let tv = vnormal.multiply(view_rotation_matrix);
+                let tv = vnormal.multiply(&view_rotation_matrix);
                 transformed_normals.push(tv);
             }
 
             for face in obj.faces.iter() {
-                let v1 = transformed_vertices[face.v0 as usize];
-                let v2 = transformed_vertices[face.v1 as usize];
-                let v3 = transformed_vertices[face.v2 as usize];
+                let v1 = &transformed_vertices[face.v0 as usize];
+                let v2 = &transformed_vertices[face.v1 as usize];
+                let v3 = &transformed_vertices[face.v2 as usize];
 
-                let ax1 = v3.sub(v1);
-                let ax2 = v2.sub(v1);
-                let cp = ax2.normal().cross(ax1.normal());
+                let ax1 = v3.sub(&v1);
+                let ax2 = v2.sub(&v1);
+                let cp = ax2.normal().cross(&ax1.normal());
 
                 //log!("cp {:?}", cp);
                 // if cp.z > 0.0 {

@@ -140,18 +140,18 @@ fn orient2d(a: &math::PointI32, b: &math::PointI32, cx: i32, cy: i32) -> i32 {
     return (b.x-a.x)*(cy-a.y) - (b.y-a.y)*(cx-a.x);
 }
 
-fn orient2df(a: math::Point, b: math::Point, cx: f32, cy: f32) -> f32 {
+fn orient2df(a: &math::Point, b: &math::Point, cx: f32, cy: f32) -> f32 {
     return (b.x-a.x)*(cy-a.y) - (b.y-a.y)*(cx-a.x);
 }
 
-fn to_screen_point(p: math::Point) -> math::PointI32 {
+fn to_screen_point(p: &math::Point) -> math::PointI32 {
     return math::PointI32 {
         x: (p.x + 0.5) as i32,
         y: (p.y + 0.5) as i32,
     }
 }
 
-fn vec3_to_screen_point(p: math::Vector3) -> math::PointI32 {
+fn vec3_to_screen_point(p: &math::Vector3) -> math::PointI32 {
     return math::PointI32 {
         x: (p.x + 0.5) as i32,
         y: (p.y + 0.5) as i32,
@@ -159,9 +159,9 @@ fn vec3_to_screen_point(p: math::Vector3) -> math::PointI32 {
 }
 
 pub fn draw_triangle_barycentric(target: &mut RenderTarget, c: &Color, p1: math::Point, p2: math::Point, p3: math::Point) {
-    let v0 = to_screen_point(p1);
-    let v1 = to_screen_point(p2);
-    let v2 = to_screen_point(p3);
+    let v0 = to_screen_point(&p1);
+    let v1 = to_screen_point(&p2);
+    let v2 = to_screen_point(&p3);
 
     let minx = (v0.x.min(v1.x.min(v2.x)) as i32).max(0);
     let miny = (v0.y.min(v1.y.min(v2.y)) as i32).max(0);
@@ -219,9 +219,9 @@ pub fn draw_triangle_barycentric(target: &mut RenderTarget, c: &Color, p1: math:
 }
 
 pub fn draw_triangle_barycentric_z(target: &mut RenderTarget, c: &Color, p0: math::Vector3, p1: math::Vector3, p2: math::Vector3) {
-    let v0 = vec3_to_screen_point(p2);
-    let v1 = vec3_to_screen_point(p1);
-    let v2 = vec3_to_screen_point(p0);
+    let v0 = vec3_to_screen_point(&p2);
+    let v1 = vec3_to_screen_point(&p1);
+    let v2 = vec3_to_screen_point(&p0);
 
     let z0 = p2.z;
     let z1 = p1.z;
@@ -295,9 +295,9 @@ pub fn draw_triangle_barycentric_z(target: &mut RenderTarget, c: &Color, p0: mat
 }
 
 pub fn draw_triangle_barycentric_z_uv(target: &mut RenderTarget, texture: &Texture, p0: math::Vector3, p1: math::Vector3, p2: math::Vector3, uv0: math::Point, uv1: math::Point, uv2: math::Point) {
-    let v0 = vec3_to_screen_point(p2);
-    let v1 = vec3_to_screen_point(p1);
-    let v2 = vec3_to_screen_point(p0);
+    let v0 = vec3_to_screen_point(&p2);
+    let v1 = vec3_to_screen_point(&p1);
+    let v2 = vec3_to_screen_point(&p0);
 
     let z0 = p2.z;
     let z1 = p1.z;

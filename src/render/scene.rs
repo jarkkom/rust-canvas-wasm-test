@@ -58,10 +58,10 @@ impl Scene {
         self.objects.push(object)
     }
 
-    fn clip(v: Vec<math::Vector4>) -> Vec<math::Vector4> {
+    fn clip(v: Vec<&math::Vector4>) -> Vec<math::Vector4> {
         let plane = math::Vector4{ x: 0.0, y: 0.0, z: 1.0, w: 0.5 };
 
-        let mut out = Vec::with_capacity(v.len() + 1);
+        let mut out:Vec<math::Vector4> = Vec::with_capacity(v.len() + 1);
 
         for i in 0..v.len() {
             let next_i = (i + 1) % v.len();
@@ -70,14 +70,14 @@ impl Scene {
             let dot_next = plane.dot(v[next_i]) - plane.w;
 
             if dot >= 0.0 {
-                out.push(v[i]);
+                out.push(math::Vector4{ x: v[i].x, y: v[i].y, z: v[i].z, w: v[i].w });
             }
             if dot < 0.0 && dot_next < 0.0 {
                 continue;
             }
             if dot.signum() != dot_next.signum() {
                 let a = -(dot) / (dot_next - dot);
-                let intersect = v[next_i].sub(v[i]).scale(a).add(v[i]);
+                let intersect = v[next_i].sub(&v[i]).scale(a).add(&v[i]);
                 out.push(intersect);
             }
         }
@@ -90,10 +90,10 @@ impl Scene {
         let aspect_ratio = render_target.width as f32 / render_target.height as f32;
 
         let identity_matrix = math::Matrix4::identity();
-        let view_matrix = math::Matrix4::lookat(self.camera.position, self.camera.target);
-        let view_rotation_matrix = math::Matrix4::lookat_rot(self.camera.position, self.camera.target);
-        let projection_matrix = math::Matrix4::projection(self.camera.field_of_vision / 180.0 * std::f32::consts::PI, aspect_ratio, 0.5, 100.0);
-        let final_matrix = identity_matrix.multiply(view_matrix).multiply(projection_matrix);
+        let view_matrix = math::Matrix4::lookat(&self.camera.position, &self.camera.target);
+        let view_rotation_matrix = math::Matrix4::lookat_rot(&self.camera.position, &self.camera.target);
+        let projection_matrix = math::Matrix4::projection(self.camera.field_of_vision / 180.0 * std::f32::consts::PI, aspect_ratio, 0.1, 10000.0);
+        let final_matrix = identity_matrix.multiply(&view_matrix).multiply(&projection_matrix);
 
         let fw = render_target.width as f32;
         let fh = render_target.height as f32;
@@ -102,29 +102,35 @@ impl Scene {
             let mut transformed_vertices: Vec<math::Vector4> = Vec::with_capacity(obj.vertices.len());
 
             for vertex in obj.vertices.iter() {
-                let tv = vertex.multiply(final_matrix);
+                let tv = vertex.multiply(&final_matrix);
                 transformed_vertices.push(tv);
             }
 
             let mut transformed_normals: Vec<math::Vector4> = Vec::with_capacity(obj.vertex_normals.len());
             for vnormal in obj.vertex_normals.iter() {
-                let tv = vnormal.multiply(view_rotation_matrix);
+                let tv = vnormal.multiply(&view_rotation_matrix);
                 transformed_normals.push(tv);
             }
 
             for face in obj.faces.iter() {
-                let cv1 = transformed_vertices[face.v0 as usize];
-                let cv2 = transformed_vertices[face.v1 as usize];
-                let cv3 = transformed_vertices[face.v2 as usize];
+                let cv1 = &transformed_vertices[face.v0 as usize];
+                let cv2 = &transformed_vertices[face.v1 as usize];
+                let cv3 = &transformed_vertices[face.v2 as usize];
 
-                // let ax1 = v3.sub(v1);
-                // let ax2 = v2.sub(v1);
-                // let cp = ax2.normal().cross(ax1.normal());
+                let ax1 = cv3.sub(cv1);
+                let ax2 = cv2.sub(cv1);
+                let cp = ax2.normal().cross(&ax1.normal());
 
                 //log!("cp {:?}", cp);
                 // if cp.z > 0.0 {
-                //     continue;
+                //      continue;
                 // }
+
+                if cv1.x.abs() > cv1.w.abs() && cv1.y.abs() > cv1.w.abs()
+                    && cv2.x.abs() > cv2.w.abs() && cv2.y.abs() > cv2.w.abs()
+                    && cv3.x.abs() > cv3.w.abs() && cv3.y.abs() > cv3.w.abs() {
+                    continue;
+                }
 
                 let clipped = self::Scene::clip(vec![cv1, cv2, cv3]);
 
@@ -133,21 +139,10 @@ impl Scene {
                 }
 
                 for i in 0..clipped.len() - 2 {
-                    let v1 = clipped[0];
-                    let v2 = clipped[i+1];
-                    let v3 = clipped[i+2];
+                    let v1 = &clipped[0];
+                    let v2 = &clipped[i+1];
+                    let v3 = &clipped[i+2];
 
-                    // if v1.z < 0.0 || v2.z < 0.0 || v3.z < 0.0  {
-                    //     continue;
-                    // }
-
-/*
-                    if v1.x.abs() > v1.w.abs() && v1.y.abs() > v1.w.abs()
-                        && v2.x.abs() > v2.w.abs() && v2.y.abs() > v2.w.abs()
-                        && v3.x.abs() > v3.w.abs() && v3.y.abs() > v3.w.abs() {
-                        continue;
-                    }
-*/
                     let x1 = (v1.x / v1.w) * (fw / 2.0) + (fw / 2.0);  
                     let y1 = (v1.y / v1.w) * (fh / 2.0) + (fh / 2.0);  
 

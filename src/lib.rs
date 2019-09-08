@@ -95,8 +95,8 @@ impl CanvasRenderer {
             p[3] = 255;
         }
 
-        self.scene.camera.position = self.cameraPos;
-        self.scene.camera.target = self.cameraTar;
+        self.scene.camera.position = math::Vector3{ x: self.cameraPos.x, y: self.cameraPos.y, z: self.cameraPos.z };
+        self.scene.camera.target = math::Vector3{ x: self.cameraTar.x, y: self.cameraTar.y, z: self.cameraTar.z };
 
         self.scene.draw(&mut current_target);
 

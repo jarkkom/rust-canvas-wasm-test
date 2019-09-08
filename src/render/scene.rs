@@ -59,10 +59,11 @@ impl Scene {
     }
 
     fn clip(v: Vec<&math::Vector4>) -> Vec<math::Vector4> {
-        let plane = math::Vector4{ x: 0.0, y: 0.0, z: 1.0, w: 0.5 };
+        let plane = math::Vector4{ x: 0.0, y: 0.0, z: 1.0, w: 0.0 };
 
-        let mut out:Vec<math::Vector4> = Vec::with_capacity(v.len() + 1);
+        let mut z_out:Vec<math::Vector4> = Vec::with_capacity(v.len() + 1);
 
+        // near-z
         for i in 0..v.len() {
             let next_i = (i + 1) % v.len();
 
@@ -70,7 +71,7 @@ impl Scene {
             let dot_next = plane.dot(v[next_i]) - plane.w;
 
             if dot >= 0.0 {
-                out.push(math::Vector4{ x: v[i].x, y: v[i].y, z: v[i].z, w: v[i].w });
+                z_out.push(math::Vector4{ x: v[i].x, y: v[i].y, z: v[i].z, w: v[i].w });
             }
             if dot < 0.0 && dot_next < 0.0 {
                 continue;
@@ -78,11 +79,57 @@ impl Scene {
             if dot.signum() != dot_next.signum() {
                 let a = -(dot) / (dot_next - dot);
                 let intersect = v[next_i].sub(&v[i]).scale(a).add(&v[i]);
-                out.push(intersect);
+                z_out.push(intersect);
             }
         }
 
-        return out;
+        let mut x1_out:Vec<math::Vector4> = Vec::with_capacity(z_out.len() + 1);
+
+        // x < w
+        for i in 0..z_out.len() {
+            let next_i = (i + 1) % z_out.len();
+
+            let plane = math::Vector4{ x: 1.0, y: 0.0, z: 0.0, w: 1.0 };
+            let dot = plane.dot(&z_out[i]) - plane.w;
+            let dot_next = plane.dot(&z_out[next_i]) - plane.w;
+
+            if dot >= 0.0 {
+                x1_out.push(math::Vector4{ x: z_out[i].x, y: z_out[i].y, z: z_out[i].z, w: z_out[i].w });
+            }
+            if dot < 0.0 && dot_next < 0.0 {
+                continue;
+            }
+            if dot.signum() != dot_next.signum() {
+                let a = -(dot) / (dot_next - dot);
+                let intersect = z_out[next_i].sub(&z_out[i]).scale(a).add(&z_out[i]);
+                x1_out.push(intersect);
+            }
+        }
+
+        let mut x2_out:Vec<math::Vector4> = Vec::with_capacity(x1_out.len() + 1);
+
+        // x > -w
+        for i in 0..x1_out.len() {
+            let next_i = (i + 1) % x1_out.len();
+
+            let plane = math::Vector4{ x: -1.0, y: 0.0, z: 0.0, w: 1.0 };
+            let dot = plane.dot(&x1_out[i]) - plane.w;
+            let dot_next = plane.dot(&x1_out[next_i]) - plane.w;
+
+            if dot >= 0.0 {
+                x2_out.push(math::Vector4{ x: x1_out[i].x, y: x1_out[i].y, z: x1_out[i].z, w: x1_out[i].w });
+            }
+            if dot < 0.0 && dot_next < 0.0 {
+                continue;
+            }
+            if dot.signum() != dot_next.signum() {
+                let a = -(dot) / (dot_next - dot);
+                let intersect = x1_out[next_i].sub(&x1_out[i]).scale(a).add(&x1_out[i]);
+                x2_out.push(intersect);
+            }
+        }
+
+        return x2_out;
     }
 
     pub fn draw(&self, render_target: &mut super::RenderTarget) {
@@ -92,7 +139,7 @@ impl Scene {
         let identity_matrix = math::Matrix4::identity();
         let view_matrix = math::Matrix4::lookat(&self.camera.position, &self.camera.target);
         let view_rotation_matrix = math::Matrix4::lookat_rot(&self.camera.position, &self.camera.target);
-        let projection_matrix = math::Matrix4::projection(self.camera.field_of_vision / 180.0 * std::f32::consts::PI, aspect_ratio, 0.1, 10000.0);
+        let projection_matrix = math::Matrix4::projection(self.camera.field_of_vision / 180.0 * std::f32::consts::PI, aspect_ratio, 1.0, 10000.0);
         let final_matrix = identity_matrix.multiply(&view_matrix).multiply(&projection_matrix);
 
         let fw = render_target.width as f32;

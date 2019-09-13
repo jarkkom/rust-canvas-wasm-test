@@ -58,77 +58,87 @@ impl Scene {
         self.objects.push(object)
     }
 
-    fn clip(v: Vec<&math::Vector4>) -> Vec<math::Vector4> {
-        let plane = math::Vector4{ x: 0.0, y: 0.0, z: 1.0, w: 0.0 };
-
-        let mut z_out:Vec<math::Vector4> = Vec::with_capacity(v.len() + 1);
+    fn clip(v: Vec<&super::VertexUV>) -> Vec<super::VertexUV> {
+        let mut z1_out:Vec<super::VertexUV> = Vec::with_capacity(v.len() + 1);
 
         // near-z
         for i in 0..v.len() {
             let next_i = (i + 1) % v.len();
 
-            let dot = plane.dot(v[i]) - plane.w;
-            let dot_next = plane.dot(v[next_i]) - plane.w;
+            let dot = v[i].z + v[i].w;
+            let dot_next = v[next_i].z + v[next_i].w;
 
             if dot >= 0.0 {
-                z_out.push(math::Vector4{ x: v[i].x, y: v[i].y, z: v[i].z, w: v[i].w });
+                z1_out.push(super::VertexUV{ x: v[i].x, y: v[i].y, z: v[i].z, w: v[i].w, u: v[i].u, v: v[i].v });
             }
             if dot < 0.0 && dot_next < 0.0 {
                 continue;
             }
             if dot.signum() != dot_next.signum() {
-                let a = -(dot) / (dot_next - dot);
-                let intersect = v[next_i].sub(&v[i]).scale(a).add(&v[i]);
-                z_out.push(intersect);
+                let a = (dot_next) / (dot_next - dot);
+                z1_out.push(v[i].lerp(v[next_i], a));
             }
         }
 
-        let mut x1_out:Vec<math::Vector4> = Vec::with_capacity(z_out.len() + 1);
+        // far-z
+        let mut z2_out:Vec<super::VertexUV> = Vec::with_capacity(z1_out.len() + 1);
+        for i in 0..z1_out.len() {
+            let next_i = (i + 1) % z1_out.len();
 
+            let dot = -z1_out[i].z + z1_out[i].w;
+            let dot_next = -z1_out[next_i].z + z1_out[next_i].w;
+
+            if dot >= 0.0 {
+                z2_out.push(super::VertexUV{ x: z1_out[i].x, y: z1_out[i].y, z: z1_out[i].z, w: z1_out[i].w, u: z1_out[i].u, v: z1_out[i].v });
+            }
+            if dot < 0.0 && dot_next < 0.0 {
+                continue;
+            }
+            if dot.signum() != dot_next.signum() {
+                let a = (dot_next) / (dot_next - dot);
+                z2_out.push(z1_out[i].lerp(&z1_out[next_i], a));
+            }
+        }
+
+        let mut x1_out:Vec<super::VertexUV> = Vec::with_capacity(z2_out.len() + 1);
         // x < w
-        for i in 0..z_out.len() {
-            let next_i = (i + 1) % z_out.len();
+        for i in 0..z2_out.len() {
+            let next_i = (i + 1) % z2_out.len();
 
-            let plane = math::Vector4{ x: 1.0, y: 0.0, z: 0.0, w: 1.0 };
-            let dot = plane.dot(&z_out[i]) - plane.w;
-            let dot_next = plane.dot(&z_out[next_i]) - plane.w;
+            let dot = z2_out[i].x + z2_out[i].w;
+            let dot_next = z2_out[next_i].x + z2_out[next_i].w;
 
             if dot >= 0.0 {
-                x1_out.push(math::Vector4{ x: z_out[i].x, y: z_out[i].y, z: z_out[i].z, w: z_out[i].w });
+                x1_out.push(super::VertexUV{ x: z2_out[i].x, y: z2_out[i].y, z: z2_out[i].z, w: z2_out[i].w, u: z2_out[i].u, v: z2_out[i].v });
             }
             if dot < 0.0 && dot_next < 0.0 {
                 continue;
             }
             if dot.signum() != dot_next.signum() {
-                let a = -(dot) / (dot_next - dot);
-                let intersect = z_out[next_i].sub(&z_out[i]).scale(a).add(&z_out[i]);
-                x1_out.push(intersect);
+                let a = (dot_next) / (dot_next - dot);
+                x1_out.push(z2_out[i].lerp(&z2_out[next_i], a));
             }
         }
 
-        let mut x2_out:Vec<math::Vector4> = Vec::with_capacity(x1_out.len() + 1);
-
+        let mut x2_out:Vec<super::VertexUV> = Vec::with_capacity(x1_out.len() + 1);
         // x > -w
         for i in 0..x1_out.len() {
             let next_i = (i + 1) % x1_out.len();
 
-            let plane = math::Vector4{ x: -1.0, y: 0.0, z: 0.0, w: 1.0 };
-            let dot = plane.dot(&x1_out[i]) - plane.w;
-            let dot_next = plane.dot(&x1_out[next_i]) - plane.w;
+            let dot = -x1_out[i].x + x1_out[i].w;
+            let dot_next = -x1_out[next_i].x + x1_out[next_i].w;
 
             if dot >= 0.0 {
-                x2_out.push(math::Vector4{ x: x1_out[i].x, y: x1_out[i].y, z: x1_out[i].z, w: x1_out[i].w });
+                x2_out.push(super::VertexUV{ x: x1_out[i].x, y: x1_out[i].y, z: x1_out[i].z, w: x1_out[i].w, u: x1_out[i].u, v: x1_out[i].v });
             }
             if dot < 0.0 && dot_next < 0.0 {
                 continue;
             }
             if dot.signum() != dot_next.signum() {
-                let a = -(dot) / (dot_next - dot);
-                let intersect = x1_out[next_i].sub(&x1_out[i]).scale(a).add(&x1_out[i]);
-                x2_out.push(intersect);
+                let a = (dot_next) / (dot_next - dot);
+                x2_out.push(x1_out[i].lerp(&x1_out[next_i], a));
             }
         }
-
         return x2_out;
     }
 
@@ -139,7 +149,7 @@ impl Scene {
         let identity_matrix = math::Matrix4::identity();
         let view_matrix = math::Matrix4::lookat(&self.camera.position, &self.camera.target);
         let view_rotation_matrix = math::Matrix4::lookat_rot(&self.camera.position, &self.camera.target);
-        let projection_matrix = math::Matrix4::projection(self.camera.field_of_vision / 180.0 * std::f32::consts::PI, aspect_ratio, 1.0, 10000.0);
+        let projection_matrix = math::Matrix4::projection(self.camera.field_of_vision / 180.0 * std::f32::consts::PI, aspect_ratio, 1.0, 1000.0);
         let final_matrix = identity_matrix.multiply(&view_matrix).multiply(&projection_matrix);
 
         let fw = render_target.width as f32;
@@ -164,13 +174,11 @@ impl Scene {
                 let cv2 = &transformed_vertices[face.v1 as usize];
                 let cv3 = &transformed_vertices[face.v2 as usize];
 
-                let ax1 = cv3.sub(cv1);
-                let ax2 = cv2.sub(cv1);
-                let cp = ax2.normal().cross(&ax1.normal());
-
-                //log!("cp {:?}", cp);
-                // if cp.z > 0.0 {
-                //      continue;
+                // let ax1 = cv3.sub(&cv1);
+                // let ax2 = cv2.sub(&cv1);
+                // let cp = ax2.cross(&ax1);
+                // if cp.z < 0.0 {
+                //     continue;
                 // }
 
                 if cv1.x.abs() > cv1.w.abs() && cv1.y.abs() > cv1.w.abs()
@@ -179,7 +187,25 @@ impl Scene {
                     continue;
                 }
 
-                let clipped = self::Scene::clip(vec![cv1, cv2, cv3]);
+                let euv0 = math::Point { x: (transformed_normals[face.vn0 as usize].x / -2.0) + 0.5, y: (transformed_normals[face.vn0 as usize].y / -2.0) + 0.5};
+                let euv1 = math::Point { x: (transformed_normals[face.vn1 as usize].x / -2.0) + 0.5, y: (transformed_normals[face.vn1 as usize].y / -2.0) + 0.5};
+                let euv2 = math::Point { x: (transformed_normals[face.vn2 as usize].x / -2.0) + 0.5, y: (transformed_normals[face.vn2 as usize].y / -2.0) + 0.5};
+
+                // let euv0 = obj.uvs[face.uv0 as usize];
+                // let euv1 = obj.uvs[face.uv1 as usize];
+                // let euv2 = obj.uvs[face.uv2 as usize];
+
+                let v1 = super::VertexUV{ x: cv1.x, y: cv1.y, z: cv1.z, w: cv1.w, u: euv0.x, v: euv0.y };
+                let v2 = super::VertexUV{ x: cv2.x, y: cv2.y, z: cv2.z, w: cv2.w, u: euv1.x, v: euv1.y };
+                let v3 = super::VertexUV{ x: cv3.x, y: cv3.y, z: cv3.z, w: cv3.w, u: euv2.x, v: euv2.y };
+
+                let to_clip = vec![
+                    &v1, 
+                    &v2,
+                    &v3,
+                ];
+
+                let clipped = self::Scene::clip(to_clip);
 
                 if clipped.len() == 0 {
                     continue;
@@ -199,34 +225,11 @@ impl Scene {
                     let x3 = (v3.x / v3.w) * (fw / 2.0) + (fw / 2.0);  
                     let y3 = (v3.y / v3.w) * (fh / 2.0) + (fh / 2.0);  
 
-                    // let mut c = render::Color { r: (cp.z.abs() * 255.0) as u8, b: (cp.z.abs() * 0.0) as u8, g: (cp.z.abs() * 0.0) as u8, a: 255 };
-                    // if i % 2 == 1 
-                    // { 
-                    //     c = render::Color { r: (cp.z.abs() * 0.0) as u8, b: (cp.z.abs() * 255.0) as u8, g: (cp.z.abs() * 0.0) as u8, a: 255 }
-                    // }
-                    // render::draw_triangle_barycentric_z(&mut current_target,
-                    //     &c,
-                    //     math::Vector3{ x: x1, y: y1, z: v1.z / v1.w},
-                    //     math::Vector3{ x: x2, y: y2, z: v2.z / v2.w},
-                    //     math::Vector3{ x: x3, y: y3, z: v3.z / v3.w}
-                    //     );
-
-                    let euv0 = math::Point { x: (transformed_normals[face.vn0 as usize].x / -2.0) + 0.5, y: (transformed_normals[face.vn0 as usize].y / -2.0) + 0.5};
-                    let euv1 = math::Point { x: (transformed_normals[face.vn1 as usize].x / -2.0) + 0.5, y: (transformed_normals[face.vn1 as usize].y / -2.0) + 0.5};
-                    let euv2 = math::Point { x: (transformed_normals[face.vn2 as usize].x / -2.0) + 0.5, y: (transformed_normals[face.vn2 as usize].y / -2.0) + 0.5};
-
-                    // let euv0 = obj.uvs[face.uv0 as usize]
-                    // let euv0 = obj.uvs[face.uv1 as usize]
-                    // let euv0 = obj.uvs[face.uv2 as usize]
-
                     super::draw_triangle_barycentric_z_uv(render_target,
                         &obj.texture,
-                        math::Vector3{ x: x1, y: y1, z: v1.z / v1.w},
-                        math::Vector3{ x: x2, y: y2, z: v2.z / v2.w},
-                        math::Vector3{ x: x3, y: y3, z: v3.z / v3.w},
-                        euv0,
-                        euv1,
-                        euv2,
+                        &super::VertexUV{ x: x1, y: y1, z: v1.z / v1.w, w: 1.0, u: v1.u, v: v1.v },
+                        &super::VertexUV{ x: x2, y: y2, z: v2.z / v2.w, w: 1.0, u: v2.u, v: v2.v },
+                        &super::VertexUV{ x: x3, y: y3, z: v3.z / v3.w, w: 1.0, u: v3.u, v: v3.v },
                         );
                 }
             }

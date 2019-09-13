@@ -18,6 +18,35 @@ pub struct Color {
     pub a: u8,
 }
 
+pub struct VertexUV {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+    pub w: f32,
+    pub u: f32,
+    pub v: f32,
+}
+
+impl VertexUV {
+    pub fn to_screen_point(&self) -> math::PointI32 {
+        return math::PointI32 {
+            x: (self.x + 0.5) as i32,
+            y: (self.y + 0.5) as i32,
+        }
+    }
+
+    pub fn lerp(&self, b: &VertexUV, a: f32) -> VertexUV {
+        VertexUV{
+            x: self.x * a + b.x * (1.0 - a),
+            y: self.y * a + b.y * (1.0 - a),
+            z: self.z * a + b.z * (1.0 - a),
+            w: self.w * a + b.w * (1.0 - a),
+            u: self.u * a + b.u * (1.0 - a),
+            v: self.v * a + b.v * (1.0 - a),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Texture {
     pub width: u32,
@@ -294,21 +323,21 @@ pub fn draw_triangle_barycentric_z(target: &mut RenderTarget, c: &Color, p0: mat
     }
 }
 
-pub fn draw_triangle_barycentric_z_uv(target: &mut RenderTarget, texture: &Texture, p0: math::Vector3, p1: math::Vector3, p2: math::Vector3, uv0: math::Point, uv1: math::Point, uv2: math::Point) {
-    let v0 = vec3_to_screen_point(&p2);
-    let v1 = vec3_to_screen_point(&p1);
-    let v2 = vec3_to_screen_point(&p0);
+pub fn draw_triangle_barycentric_z_uv(target: &mut RenderTarget, texture: &Texture, p0: &VertexUV, p1: &VertexUV, p2: &VertexUV) {
+    let v0 = p2.to_screen_point();
+    let v1 = p1.to_screen_point();
+    let v2 = p0.to_screen_point();
 
     let z0 = p2.z;
     let z1 = p1.z;
     let z2 = p0.z;
 
-    let tu0 = uv2.x;
-    let tv0 = uv2.y;
-    let tu1 = uv1.x;
-    let tv1 = uv1.y;
-    let tu2 = uv0.x;
-    let tv2 = uv0.y;
+    let tu0 = p2.u;
+    let tv0 = p2.v;
+    let tu1 = p1.u;
+    let tv1 = p1.v;
+    let tu2 = p0.u;
+    let tv2 = p0.v;
 
     let minx = (v0.x.min(v1.x.min(v2.x)) as i32).max(0);
     let miny = (v0.y.min(v1.y.min(v2.y)) as i32).max(0);

@@ -58,85 +58,92 @@ impl Scene {
         self.objects.push(object)
     }
 
-    fn clip(v: Vec<&super::VertexUV>) -> Vec<super::VertexUV> {
-        let mut z1_out:Vec<super::VertexUV> = Vec::with_capacity(v.len() + 1);
+    fn clip(vertices: Vec<&super::VertexUV>) -> Vec<super::VertexUV> {
+        let mut z1_out:Vec<super::VertexUV> = Vec::with_capacity(vertices.len() + 1);
 
         // near-z
-        for i in 0..v.len() {
-            let next_i = (i + 1) % v.len();
+        let mut v_next_iter = vertices.iter().cycle();
+        v_next_iter.next();
+        for v in vertices.iter() {
+            let v_next = v_next_iter.next().unwrap();
 
-            let dot = v[i].z + v[i].w;
-            let dot_next = v[next_i].z + v[next_i].w;
+            let dot = v.z + v.w;
+            let dot_next = v_next.z + v_next.w;
 
             if dot >= 0.0 {
-                z1_out.push(super::VertexUV{ x: v[i].x, y: v[i].y, z: v[i].z, w: v[i].w, u: v[i].u, v: v[i].v });
+                z1_out.push(super::VertexUV{ x: v.x, y: v.y, z: v.z, w: v.w, u: v.u, v: v.v });
             }
             if dot < 0.0 && dot_next < 0.0 {
                 continue;
             }
             if dot.signum() != dot_next.signum() {
                 let a = (dot_next) / (dot_next - dot);
-                z1_out.push(v[i].lerp(v[next_i], a));
+                z1_out.push(v.lerp(v_next, a));
             }
         }
 
         // far-z
         let mut z2_out:Vec<super::VertexUV> = Vec::with_capacity(z1_out.len() + 1);
-        for i in 0..z1_out.len() {
-            let next_i = (i + 1) % z1_out.len();
 
-            let dot = -z1_out[i].z + z1_out[i].w;
-            let dot_next = -z1_out[next_i].z + z1_out[next_i].w;
+        let mut v_next_iter = z1_out.iter().cycle();
+        v_next_iter.next();
+        for v in z1_out.iter() {
+            let v_next = v_next_iter.next().unwrap();
+
+            let dot = -v.z + v.w;
+            let dot_next = -v_next.z + v_next.w;
 
             if dot >= 0.0 {
-                z2_out.push(super::VertexUV{ x: z1_out[i].x, y: z1_out[i].y, z: z1_out[i].z, w: z1_out[i].w, u: z1_out[i].u, v: z1_out[i].v });
+                z2_out.push(super::VertexUV{ x: v.x, y: v.y, z: v.z, w: v.w, u: v.u, v: v.v });
             }
             if dot < 0.0 && dot_next < 0.0 {
                 continue;
             }
             if dot.signum() != dot_next.signum() {
                 let a = (dot_next) / (dot_next - dot);
-                z2_out.push(z1_out[i].lerp(&z1_out[next_i], a));
+                z2_out.push(v.lerp(v_next, a));
             }
         }
 
         let mut x1_out:Vec<super::VertexUV> = Vec::with_capacity(z2_out.len() + 1);
         // x < w
-        for i in 0..z2_out.len() {
-            let next_i = (i + 1) % z2_out.len();
-
-            let dot = z2_out[i].x + z2_out[i].w;
-            let dot_next = z2_out[next_i].x + z2_out[next_i].w;
+        let mut v_next_iter = z1_out.iter().cycle();
+        v_next_iter.next();
+        for v in z2_out.iter() {
+            let v_next = v_next_iter.next().unwrap();
+            let dot = v.x + v.w;
+            let dot_next = v_next.x + v_next.w;
 
             if dot >= 0.0 {
-                x1_out.push(super::VertexUV{ x: z2_out[i].x, y: z2_out[i].y, z: z2_out[i].z, w: z2_out[i].w, u: z2_out[i].u, v: z2_out[i].v });
+                x1_out.push(super::VertexUV{ x: v.x, y: v.y, z: v.z, w: v.w, u: v.u, v: v.v });
             }
             if dot < 0.0 && dot_next < 0.0 {
                 continue;
             }
             if dot.signum() != dot_next.signum() {
                 let a = (dot_next) / (dot_next - dot);
-                x1_out.push(z2_out[i].lerp(&z2_out[next_i], a));
+                x1_out.push(v.lerp(v_next, a));
             }
         }
 
         let mut x2_out:Vec<super::VertexUV> = Vec::with_capacity(x1_out.len() + 1);
         // x > -w
-        for i in 0..x1_out.len() {
-            let next_i = (i + 1) % x1_out.len();
-
-            let dot = -x1_out[i].x + x1_out[i].w;
-            let dot_next = -x1_out[next_i].x + x1_out[next_i].w;
+        let mut v_next_iter = x1_out.iter().cycle();
+        v_next_iter.next();
+        for v in x1_out.iter() {
+            let v_next = v_next_iter.next().unwrap();
+            let dot = -v.x + v.w;
+            let dot_next = -v_next.x + v_next.w;
 
             if dot >= 0.0 {
-                x2_out.push(super::VertexUV{ x: x1_out[i].x, y: x1_out[i].y, z: x1_out[i].z, w: x1_out[i].w, u: x1_out[i].u, v: x1_out[i].v });
+                x2_out.push(super::VertexUV{ x: v.x, y: v.y, z: v.z, w: v.w, u: v.u, v: v.v });
             }
             if dot < 0.0 && dot_next < 0.0 {
                 continue;
             }
             if dot.signum() != dot_next.signum() {
                 let a = (dot_next) / (dot_next - dot);
-                x2_out.push(x1_out[i].lerp(&x1_out[next_i], a));
+                x2_out.push(v.lerp(v_next, a));
             }
         }
         return x2_out;
@@ -156,18 +163,8 @@ impl Scene {
         let fh = render_target.height as f32;
 
         for obj in self.objects.iter() {
-            let mut transformed_vertices: Vec<math::Vector4> = Vec::with_capacity(obj.vertices.len());
-
-            for vertex in obj.vertices.iter() {
-                let tv = vertex.multiply(&final_matrix);
-                transformed_vertices.push(tv);
-            }
-
-            let mut transformed_normals: Vec<math::Vector4> = Vec::with_capacity(obj.vertex_normals.len());
-            for vnormal in obj.vertex_normals.iter() {
-                let tv = vnormal.multiply(&view_rotation_matrix);
-                transformed_normals.push(tv);
-            }
+            let transformed_vertices: Vec<math::Vector4> = obj.vertices.iter().map(|v| v.multiply(&final_matrix)).collect();
+            let transformed_normals: Vec<math::Vector4> = obj.vertex_normals.iter().map(|v| v.multiply(&view_rotation_matrix)).collect();
 
             for face in obj.faces.iter() {
                 let cv1 = &transformed_vertices[face.v0 as usize];

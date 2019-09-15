@@ -146,7 +146,50 @@ impl Scene {
                 x2_out.push(v.lerp(v_next, a));
             }
         }
-        return x2_out;
+
+        let mut y1_out:Vec<super::VertexUV> = Vec::with_capacity(z2_out.len() + 1);
+        // y < w
+        let mut v_next_iter = x2_out.iter().cycle();
+        v_next_iter.next();
+        for v in x2_out.iter() {
+            let v_next = v_next_iter.next().unwrap();
+            let dot = v.y + v.w;
+            let dot_next = v_next.y + v_next.w;
+
+            if dot >= 0.0 {
+                y1_out.push(super::VertexUV{ x: v.x, y: v.y, z: v.z, w: v.w, u: v.u, v: v.v });
+            }
+            if dot < 0.0 && dot_next < 0.0 {
+                continue;
+            }
+            if dot.signum() != dot_next.signum() {
+                let a = (dot_next) / (dot_next - dot);
+                y1_out.push(v.lerp(v_next, a));
+            }
+        }
+
+        let mut y2_out:Vec<super::VertexUV> = Vec::with_capacity(x1_out.len() + 1);
+        // y > -w
+        let mut v_next_iter = y1_out.iter().cycle();
+        v_next_iter.next();
+        for v in y1_out.iter() {
+            let v_next = v_next_iter.next().unwrap();
+            let dot = -v.y + v.w;
+            let dot_next = -v_next.y + v_next.w;
+
+            if dot >= 0.0 {
+                y2_out.push(super::VertexUV{ x: v.x, y: v.y, z: v.z, w: v.w, u: v.u, v: v.v });
+            }
+            if dot < 0.0 && dot_next < 0.0 {
+                continue;
+            }
+            if dot.signum() != dot_next.signum() {
+                let a = (dot_next) / (dot_next - dot);
+                y2_out.push(v.lerp(v_next, a));
+            }
+        }
+
+        return y2_out;
     }
 
     pub fn draw(&self, render_target: &mut super::RenderTarget) {

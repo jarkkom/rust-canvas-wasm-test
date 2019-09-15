@@ -62,7 +62,7 @@ const objs = [rustTexture, torusObject, cubeObject];
 
 Promise.all(objs).then((values) => {
     renderer.add_obj(values[1], values[0].data, values[0].width, values[0].height);
-    renderer.add_obj(values[2], values[0].data, values[0].width, values[0].height);
+    //renderer.add_obj(values[2], values[0].data, values[0].width, values[0].height);
     loop();
 }).catch((reason) => {
     console.log(reason);

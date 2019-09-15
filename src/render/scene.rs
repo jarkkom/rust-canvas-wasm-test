@@ -58,98 +58,222 @@ impl Scene {
         self.objects.push(object)
     }
 
-    pub fn draw(&self, mut render_target: &mut super::RenderTarget) {
+    fn clip(vertices: Vec<&super::VertexUV>) -> Vec<super::VertexUV> {
+        let mut z1_out:Vec<super::VertexUV> = Vec::with_capacity(vertices.len() + 1);
+
+        // near-z
+        let mut v_next_iter = vertices.iter().cycle();
+        v_next_iter.next();
+        for v in vertices.iter() {
+            let v_next = v_next_iter.next().unwrap();
+
+            let dot = v.z + v.w;
+            let dot_next = v_next.z + v_next.w;
+
+            if dot >= 0.0 {
+                z1_out.push(super::VertexUV{ x: v.x, y: v.y, z: v.z, w: v.w, u: v.u, v: v.v });
+            }
+            if dot < 0.0 && dot_next < 0.0 {
+                continue;
+            }
+            if dot.signum() != dot_next.signum() {
+                let a = (dot_next) / (dot_next - dot);
+                z1_out.push(v.lerp(v_next, a));
+            }
+        }
+
+        // far-z
+        let mut z2_out:Vec<super::VertexUV> = Vec::with_capacity(z1_out.len() + 1);
+
+        let mut v_next_iter = z1_out.iter().cycle();
+        v_next_iter.next();
+        for v in z1_out.iter() {
+            let v_next = v_next_iter.next().unwrap();
+
+            let dot = -v.z + v.w;
+            let dot_next = -v_next.z + v_next.w;
+
+            if dot >= 0.0 {
+                z2_out.push(super::VertexUV{ x: v.x, y: v.y, z: v.z, w: v.w, u: v.u, v: v.v });
+            }
+            if dot < 0.0 && dot_next < 0.0 {
+                continue;
+            }
+            if dot.signum() != dot_next.signum() {
+                let a = (dot_next) / (dot_next - dot);
+                z2_out.push(v.lerp(v_next, a));
+            }
+        }
+
+        let mut x1_out:Vec<super::VertexUV> = Vec::with_capacity(z2_out.len() + 1);
+        // x < w
+        let mut v_next_iter = z1_out.iter().cycle();
+        v_next_iter.next();
+        for v in z2_out.iter() {
+            let v_next = v_next_iter.next().unwrap();
+            let dot = v.x + v.w;
+            let dot_next = v_next.x + v_next.w;
+
+            if dot >= 0.0 {
+                x1_out.push(super::VertexUV{ x: v.x, y: v.y, z: v.z, w: v.w, u: v.u, v: v.v });
+            }
+            if dot < 0.0 && dot_next < 0.0 {
+                continue;
+            }
+            if dot.signum() != dot_next.signum() {
+                let a = (dot_next) / (dot_next - dot);
+                x1_out.push(v.lerp(v_next, a));
+            }
+        }
+
+        let mut x2_out:Vec<super::VertexUV> = Vec::with_capacity(x1_out.len() + 1);
+        // x > -w
+        let mut v_next_iter = x1_out.iter().cycle();
+        v_next_iter.next();
+        for v in x1_out.iter() {
+            let v_next = v_next_iter.next().unwrap();
+            let dot = -v.x + v.w;
+            let dot_next = -v_next.x + v_next.w;
+
+            if dot >= 0.0 {
+                x2_out.push(super::VertexUV{ x: v.x, y: v.y, z: v.z, w: v.w, u: v.u, v: v.v });
+            }
+            if dot < 0.0 && dot_next < 0.0 {
+                continue;
+            }
+            if dot.signum() != dot_next.signum() {
+                let a = (dot_next) / (dot_next - dot);
+                x2_out.push(v.lerp(v_next, a));
+            }
+        }
+
+        let mut y1_out:Vec<super::VertexUV> = Vec::with_capacity(z2_out.len() + 1);
+        // y < w
+        let mut v_next_iter = x2_out.iter().cycle();
+        v_next_iter.next();
+        for v in x2_out.iter() {
+            let v_next = v_next_iter.next().unwrap();
+            let dot = v.y + v.w;
+            let dot_next = v_next.y + v_next.w;
+
+            if dot >= 0.0 {
+                y1_out.push(super::VertexUV{ x: v.x, y: v.y, z: v.z, w: v.w, u: v.u, v: v.v });
+            }
+            if dot < 0.0 && dot_next < 0.0 {
+                continue;
+            }
+            if dot.signum() != dot_next.signum() {
+                let a = (dot_next) / (dot_next - dot);
+                y1_out.push(v.lerp(v_next, a));
+            }
+        }
+
+        let mut y2_out:Vec<super::VertexUV> = Vec::with_capacity(x1_out.len() + 1);
+        // y > -w
+        let mut v_next_iter = y1_out.iter().cycle();
+        v_next_iter.next();
+        for v in y1_out.iter() {
+            let v_next = v_next_iter.next().unwrap();
+            let dot = -v.y + v.w;
+            let dot_next = -v_next.y + v_next.w;
+
+            if dot >= 0.0 {
+                y2_out.push(super::VertexUV{ x: v.x, y: v.y, z: v.z, w: v.w, u: v.u, v: v.v });
+            }
+            if dot < 0.0 && dot_next < 0.0 {
+                continue;
+            }
+            if dot.signum() != dot_next.signum() {
+                let a = (dot_next) / (dot_next - dot);
+                y2_out.push(v.lerp(v_next, a));
+            }
+        }
+
+        return y2_out;
+    }
+
+    pub fn draw(&self, render_target: &mut super::RenderTarget) {
 
         let aspect_ratio = render_target.width as f32 / render_target.height as f32;
 
         let identity_matrix = math::Matrix4::identity();
         let view_matrix = math::Matrix4::lookat(&self.camera.position, &self.camera.target);
         let view_rotation_matrix = math::Matrix4::lookat_rot(&self.camera.position, &self.camera.target);
-        let projection_matrix = math::Matrix4::projection(self.camera.field_of_vision / 180.0 * std::f32::consts::PI, aspect_ratio, 0.1, 100.0);
+        let projection_matrix = math::Matrix4::projection(self.camera.field_of_vision / 180.0 * std::f32::consts::PI, aspect_ratio, 1.0, 1000.0);
         let final_matrix = identity_matrix.multiply(&view_matrix).multiply(&projection_matrix);
 
         let fw = render_target.width as f32;
         let fh = render_target.height as f32;
 
         for obj in self.objects.iter() {
-            let mut transformed_vertices: Vec<math::Vector4> = Vec::with_capacity(obj.vertices.len());
-
-            for vertex in obj.vertices.iter() {
-                let tv = vertex.multiply(&final_matrix);
-                transformed_vertices.push(tv);
-            }
-
-            let mut transformed_normals: Vec<math::Vector4> = Vec::with_capacity(obj.vertex_normals.len());
-            for vnormal in obj.vertex_normals.iter() {
-                let tv = vnormal.multiply(&view_rotation_matrix);
-                transformed_normals.push(tv);
-            }
+            let transformed_vertices: Vec<math::Vector4> = obj.vertices.iter().map(|v| v.multiply(&final_matrix)).collect();
+            let transformed_normals: Vec<math::Vector4> = obj.vertex_normals.iter().map(|v| v.multiply(&view_rotation_matrix)).collect();
 
             for face in obj.faces.iter() {
-                let v1 = &transformed_vertices[face.v0 as usize];
-                let v2 = &transformed_vertices[face.v1 as usize];
-                let v3 = &transformed_vertices[face.v2 as usize];
+                let cv1 = &transformed_vertices[face.v0 as usize];
+                let cv2 = &transformed_vertices[face.v1 as usize];
+                let cv3 = &transformed_vertices[face.v2 as usize];
 
-                let ax1 = v3.sub(&v1);
-                let ax2 = v2.sub(&v1);
-                let cp = ax2.normal().cross(&ax1.normal());
-
-                //log!("cp {:?}", cp);
-                // if cp.z > 0.0 {
+                // let ax1 = cv3.sub(&cv1);
+                // let ax2 = cv2.sub(&cv1);
+                // let cp = ax2.cross(&ax1);
+                // if cp.z < 0.0 {
                 //     continue;
                 // }
 
-                if v1.z < 0.0 || v2.z < 0.0 || v3.z < 0.0  {
+                if cv1.x.abs() > cv1.w.abs() && cv1.y.abs() > cv1.w.abs()
+                    && cv2.x.abs() > cv2.w.abs() && cv2.y.abs() > cv2.w.abs()
+                    && cv3.x.abs() > cv3.w.abs() && cv3.y.abs() > cv3.w.abs() {
                     continue;
                 }
-
-                if v1.x.abs() > v1.w.abs() && v1.y.abs() > v1.w.abs()
-                    && v2.x.abs() > v2.w.abs() && v2.y.abs() > v2.w.abs()
-                    && v3.x.abs() > v3.w.abs() && v3.y.abs() > v3.w.abs() {
-                    continue;
-                }
-
-                let x1 = (v1.x / v1.w) * (fw / 2.0) + (fw / 2.0);  
-                let y1 = (v1.y / v1.w) * (fh / 2.0) + (fh / 2.0);  
-
-                let x2 = (v2.x / v2.w) * (fw / 2.0) + (fw / 2.0);  
-                let y2 = (v2.y / v2.w) * (fh / 2.0) + (fh / 2.0);  
-
-                let x3 = (v3.x / v3.w) * (fw / 2.0) + (fw / 2.0);  
-                let y3 = (v3.y / v3.w) * (fh / 2.0) + (fh / 2.0);  
-
-                // let mut c = render::Color { r: (cp.z.abs() * 255.0) as u8, b: (cp.z.abs() * 0.0) as u8, g: (cp.z.abs() * 0.0) as u8, a: 255 };
-                // if i % 2 == 1 
-                // { 
-                //     c = render::Color { r: (cp.z.abs() * 0.0) as u8, b: (cp.z.abs() * 255.0) as u8, g: (cp.z.abs() * 0.0) as u8, a: 255 }
-                // }
-                // render::draw_triangle_barycentric_z(&mut current_target,
-                //     &c,
-                //     math::Vector3{ x: x1, y: y1, z: v1.z / v1.w},
-                //     math::Vector3{ x: x2, y: y2, z: v2.z / v2.w},
-                //     math::Vector3{ x: x3, y: y3, z: v3.z / v3.w}
-                //     );
 
                 let euv0 = math::Point { x: (transformed_normals[face.vn0 as usize].x / -2.0) + 0.5, y: (transformed_normals[face.vn0 as usize].y / -2.0) + 0.5};
                 let euv1 = math::Point { x: (transformed_normals[face.vn1 as usize].x / -2.0) + 0.5, y: (transformed_normals[face.vn1 as usize].y / -2.0) + 0.5};
                 let euv2 = math::Point { x: (transformed_normals[face.vn2 as usize].x / -2.0) + 0.5, y: (transformed_normals[face.vn2 as usize].y / -2.0) + 0.5};
 
-                // let euv0 = obj.uvs[face.uv0 as usize]
-                // let euv0 = obj.uvs[face.uv1 as usize]
-                // let euv0 = obj.uvs[face.uv2 as usize]
+                // let euv0 = obj.uvs[face.uv0 as usize];
+                // let euv1 = obj.uvs[face.uv1 as usize];
+                // let euv2 = obj.uvs[face.uv2 as usize];
 
-                super::draw_triangle_barycentric_z_uv(render_target,
-                    &obj.texture,
-                    math::Vector3{ x: x1, y: y1, z: v1.z / v1.w},
-                    math::Vector3{ x: x2, y: y2, z: v2.z / v2.w},
-                    math::Vector3{ x: x3, y: y3, z: v3.z / v3.w},
-                    euv0,
-                    euv1,
-                    euv2,
-                    );
+                let v1 = super::VertexUV{ x: cv1.x, y: cv1.y, z: cv1.z, w: cv1.w, u: euv0.x, v: euv0.y };
+                let v2 = super::VertexUV{ x: cv2.x, y: cv2.y, z: cv2.z, w: cv2.w, u: euv1.x, v: euv1.y };
+                let v3 = super::VertexUV{ x: cv3.x, y: cv3.y, z: cv3.z, w: cv3.w, u: euv2.x, v: euv2.y };
+
+                let to_clip = vec![
+                    &v1, 
+                    &v2,
+                    &v3,
+                ];
+
+                let clipped = self::Scene::clip(to_clip);
+
+                if clipped.len() == 0 {
+                    continue;
+                }
+
+                for i in 0..clipped.len() - 2 {
+                    let v1 = &clipped[0];
+                    let v2 = &clipped[i+1];
+                    let v3 = &clipped[i+2];
+
+                    let x1 = (v1.x / v1.w) * (fw / 2.0) + (fw / 2.0);  
+                    let y1 = (v1.y / v1.w) * (fh / 2.0) + (fh / 2.0);  
+
+                    let x2 = (v2.x / v2.w) * (fw / 2.0) + (fw / 2.0);  
+                    let y2 = (v2.y / v2.w) * (fh / 2.0) + (fh / 2.0);  
+
+                    let x3 = (v3.x / v3.w) * (fw / 2.0) + (fw / 2.0);  
+                    let y3 = (v3.y / v3.w) * (fh / 2.0) + (fh / 2.0);  
+
+                    super::draw_triangle_barycentric_z_uv(render_target,
+                        &obj.texture,
+                        &super::VertexUV{ x: x1, y: y1, z: v1.z / v1.w, w: 1.0, u: v1.u, v: v1.v },
+                        &super::VertexUV{ x: x2, y: y2, z: v2.z / v2.w, w: 1.0, u: v2.u, v: v2.v },
+                        &super::VertexUV{ x: x3, y: y3, z: v3.z / v3.w, w: 1.0, u: v3.u, v: v3.v },
+                        );
+                }
             }
         }
-
     }
 }
 

@@ -65,7 +65,7 @@ impl Texture {
 }
 
 // render top half of triangle (y2 == y3)
-fn draw_triangle_top(target: &mut RenderTarget, c: &Color, p1: math::Point, p2: math::Point, p3: math::Point) {
+fn draw_triangle_top(target: &mut RenderTarget, c: &Color, p1: &math::Point, p2: &math::Point, p3: &math::Point) {
     let dx1 = (p3.x - p1.x) / (p3.y - p1.y);
     let dx2 = (p2.x - p1.x) / (p2.y - p1.y);
 
@@ -99,7 +99,7 @@ fn draw_triangle_top(target: &mut RenderTarget, c: &Color, p1: math::Point, p2: 
 }
 
 // render bottom half of triangle (y1 == y2)
-fn draw_triangle_bottom(target: &mut RenderTarget, c: &Color, p1: math::Point, p2: math::Point, p3: math::Point) {
+fn draw_triangle_bottom(target: &mut RenderTarget, c: &Color, p1: &math::Point, p2: &math::Point, p3: &math::Point) {
     let dx1 = (p3.x - p1.x) / (p3.y - p1.y);
     let dx2 = (p3.x - p2.x) / (p3.y - p2.y);
 
@@ -151,17 +151,17 @@ pub fn draw_triangle(target: &mut RenderTarget, c: &Color, p1: math::Point, p2: 
     // log!("srt {},{} {},{} {},{}", hi_x, hi_y, mi_x, mi_y, lo_x, lo_y);
 
     if mid.y == low.y {
-        draw_triangle_top(target, c, high, mid, low);
+        draw_triangle_top(target, c, &high, &mid, &low);
     } else if high.y == mid.y {
-        draw_triangle_bottom(target, c, high, mid, low);
+        draw_triangle_bottom(target, c, &high, &mid, &low);
     } else {
         let p4 = math::Point{
             x: high.x + ((mid.y - high.y) / (low.y - high.y)) * (low.x - high.x),
             y: mid.y,
         };
 
-        draw_triangle_top(target, c, high, mid, p4);
-        draw_triangle_bottom(target, c, mid, p4, low);
+        draw_triangle_top(target, c, &high, &mid, &p4);
+        draw_triangle_bottom(target, c, &mid, &p4, &low);
     }
 }
 

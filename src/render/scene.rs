@@ -323,15 +323,15 @@ impl ObjLoader {
 
         if indexes.len() > 0 {
             let res = indexes[0].parse::<i32>();
-            fi = if res.is_ok() { res.unwrap() } else { 0 };
+            fi = res.unwrap_or(0);
         }
         if indexes.len() > 1 {
             let res = indexes[1].parse::<i32>();
-            uvi = if res.is_ok() { res.unwrap() } else { 0 };
+            uvi = res.unwrap_or(0);
         }
         if indexes.len() > 2 {
             let res = indexes[2].parse::<i32>();
-            vni = if res.is_ok() { res.unwrap() } else { 0 };
+            vni = res.unwrap_or(0);
         }
 
         return (
@@ -441,3 +441,46 @@ impl ObjLoader {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_point() {
+        let valid_data = ["0.1", "0.2"];
+        assert_eq!(ObjLoader::parse_point(&valid_data), math::Point{x: 0.1, y: 0.2});
+
+        let invalid_data = ["0.1", "zzz"];
+        assert_eq!(ObjLoader::parse_point(&invalid_data), math::Point{x: 0.1, y: 0.0});
+    }
+
+    #[test]
+    fn test_parse_vertex() {
+        let valid_data = ["0.1", "0.2", "0.3"];
+        assert_eq!(ObjLoader::parse_vertex(&valid_data), math::Vector4{x: 0.1, y: 0.2, z: 0.3, w: 1.0});
+
+        let invalid_data = ["0.1", "zzz", "0.3"];
+        assert_eq!(ObjLoader::parse_vertex(&invalid_data), math::Vector4{x: 0.1, y: 0.0, z: 0.3, w: 1.0});
+
+        let extra_data_is_ignored = ["0.1", "0.2", "0.3", "0.4"];
+        assert_eq!(ObjLoader::parse_vertex(&extra_data_is_ignored), math::Vector4{x: 0.1, y: 0.2, z: 0.3, w: 1.0});
+    }
+
+    #[test]
+    fn test_parse_face_indexes() {
+        let valid_data = "1/2/3";
+        assert_eq!(ObjLoader::parse_face_indexes(&valid_data), (1, 2, 3));
+
+        let missing_uv = "1//3";
+        assert_eq!(ObjLoader::parse_face_indexes(&missing_uv), (1, 0, 3));
+
+        let invalid_data = "x/y/z";
+        assert_eq!(ObjLoader::parse_face_indexes(&invalid_data), (0, 0, 0));
+
+        let only_vertex_index = "1";
+        assert_eq!(ObjLoader::parse_face_indexes(&only_vertex_index), (1, 0, 0));
+
+        let no_vertex_normal = "1/2";
+        assert_eq!(ObjLoader::parse_face_indexes(&no_vertex_normal), (1, 2, 0));
+    }
+}

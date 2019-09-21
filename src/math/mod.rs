@@ -1,5 +1,5 @@
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Point {
     pub x: f32,
     pub y: f32,
@@ -10,6 +10,7 @@ pub struct PointI32 {
     pub y: i32,
 }
 
+#[allow(dead_code)]
 impl Point {
     pub fn rotate(&self, angle: f32) -> Point {
       Point {
@@ -22,6 +23,10 @@ impl Point {
         x: self.x + x,
         y: self.y + y,        
       } 
+    }
+
+    pub fn eq(&self, other: &Self) -> bool {
+      self.x == other.x && self.y == other.y
     }
 }
 
@@ -98,7 +103,7 @@ impl Vector3 {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Vector4 {
   pub x: f32,
   pub y: f32,
@@ -173,6 +178,10 @@ impl Vector4 {
       z: self.x * v.y - self.y * v.x,
       w: 1.0,
     }
+  }
+
+  pub fn eq(&self, other: &Self) -> bool {
+    self.x == other.x && self.y == other.y && self.z == other.z && self.w == other.w
   }
 }
 

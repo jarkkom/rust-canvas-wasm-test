@@ -452,6 +452,9 @@ mod tests {
         let valid_data = ["0.1", "0.2"];
         assert_eq!(ObjLoader::parse_point(&valid_data), Some(math::Point{x: 0.1, y: 0.2}));
 
+        let missing_data = ["0.1"];
+        assert_eq!(ObjLoader::parse_point(&missing_data), None);
+
         let invalid_data = ["0.1", "zzz"];
         assert_eq!(ObjLoader::parse_point(&invalid_data), Some(math::Point{x: 0.1, y: 0.0}));
     }
@@ -460,6 +463,9 @@ mod tests {
     fn test_parse_vertex() {
         let valid_data = ["0.1", "0.2", "0.3"];
         assert_eq!(ObjLoader::parse_vertex(&valid_data), Some(math::Vector4{x: 0.1, y: 0.2, z: 0.3, w: 1.0}));
+
+        let missing_data = ["0.1"];
+        assert_eq!(ObjLoader::parse_vertex(&missing_data), None);
 
         let invalid_data = ["0.1", "zzz", "0.3"];
         assert_eq!(ObjLoader::parse_vertex(&invalid_data), Some(math::Vector4{x: 0.1, y: 0.0, z: 0.3, w: 1.0}));

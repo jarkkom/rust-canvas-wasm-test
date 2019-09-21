@@ -293,25 +293,31 @@ pub struct ObjLoader {
 }
 
 impl ObjLoader {
-    fn parse_point(parts: &[&str]) -> math::Point {
+    fn parse_point(parts: &[&str]) -> Option<math::Point> {
+        if parts.len() < 2 {
+            return None;
+        }
         let x = parts[0].parse::<f32>();
         let y = parts[1].parse::<f32>();
-        return math::Point {
+        return Some(math::Point {
             x: if x.is_ok() { x.unwrap() } else { 0.0 }, 
             y: if y.is_ok() { y.unwrap() } else { 0.0 },
-        };
+        });
     }
 
-    fn parse_vertex(parts: &[&str]) -> math::Vector4 {
+    fn parse_vertex(parts: &[&str]) -> Option<math::Vector4> {
+        if parts.len() < 3 {
+            return None;
+        }
         let x = parts[0].parse::<f32>();
         let y = parts[1].parse::<f32>();
         let z = parts[2].parse::<f32>();
-        return math::Vector4 {
+        return Some(math::Vector4 {
             x: if x.is_ok() { x.unwrap() } else { 0.0 }, 
             y: if y.is_ok() { y.unwrap() } else { 0.0 },
             z: if z.is_ok() { z.unwrap() } else { 0.0 },
             w: 1.0,
-        };
+        });
     }
 
     fn parse_face_indexes(index_string: &str) -> (i32, i32, i32) {
@@ -356,26 +362,22 @@ impl ObjLoader {
 
             match entry_type.as_ref() {
                 "v" => {
-                    if entry_data.len() < 3 {
-                        continue;
+                    match self::ObjLoader::parse_vertex(entry_data) {
+                        Some(vertex) => obj.vertices.push(vertex),
+                        None => continue,
                     }
-                    let vertex = self::ObjLoader::parse_vertex(entry_data);
-                    obj.vertices.push(vertex);
-                    // log!("vertex {:?}", vertex);
                 },
                 "vn" => {
-                    if entry_data.len() < 3 {
-                        continue;
+                    match self::ObjLoader::parse_vertex(entry_data) {
+                        Some(normal) => obj.vertex_normals.push(normal),
+                        None => continue,
                     }
-                    let normal = self::ObjLoader::parse_vertex(entry_data);
-                    obj.vertex_normals.push(normal);
                 },
                 "vt" => {
-                    if entry_data.len() < 2 {
-                        continue;
+                    match self::ObjLoader::parse_point(entry_data) {
+                        Some(uv) => obj.uvs.push(uv),
+                        None => continue,
                     }
-                    let uv = self::ObjLoader::parse_point(entry_data);
-                    obj.uvs.push(uv);
                 },
                 "f" => {
                     // log!("{:?} {:?}", entry_data, entry_data.len());
@@ -448,22 +450,22 @@ mod tests {
     #[test]
     fn test_parse_point() {
         let valid_data = ["0.1", "0.2"];
-        assert_eq!(ObjLoader::parse_point(&valid_data), math::Point{x: 0.1, y: 0.2});
+        assert_eq!(ObjLoader::parse_point(&valid_data), Some(math::Point{x: 0.1, y: 0.2}));
 
         let invalid_data = ["0.1", "zzz"];
-        assert_eq!(ObjLoader::parse_point(&invalid_data), math::Point{x: 0.1, y: 0.0});
+        assert_eq!(ObjLoader::parse_point(&invalid_data), Some(math::Point{x: 0.1, y: 0.0}));
     }
 
     #[test]
     fn test_parse_vertex() {
         let valid_data = ["0.1", "0.2", "0.3"];
-        assert_eq!(ObjLoader::parse_vertex(&valid_data), math::Vector4{x: 0.1, y: 0.2, z: 0.3, w: 1.0});
+        assert_eq!(ObjLoader::parse_vertex(&valid_data), Some(math::Vector4{x: 0.1, y: 0.2, z: 0.3, w: 1.0}));
 
         let invalid_data = ["0.1", "zzz", "0.3"];
-        assert_eq!(ObjLoader::parse_vertex(&invalid_data), math::Vector4{x: 0.1, y: 0.0, z: 0.3, w: 1.0});
+        assert_eq!(ObjLoader::parse_vertex(&invalid_data), Some(math::Vector4{x: 0.1, y: 0.0, z: 0.3, w: 1.0}));
 
         let extra_data_is_ignored = ["0.1", "0.2", "0.3", "0.4"];
-        assert_eq!(ObjLoader::parse_vertex(&extra_data_is_ignored), math::Vector4{x: 0.1, y: 0.2, z: 0.3, w: 1.0});
+        assert_eq!(ObjLoader::parse_vertex(&extra_data_is_ignored), Some(math::Vector4{x: 0.1, y: 0.2, z: 0.3, w: 1.0}));
     }
 
     #[test]

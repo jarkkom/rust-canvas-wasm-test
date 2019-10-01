@@ -1,5 +1,5 @@
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Point {
     pub x: f32,
     pub y: f32,
@@ -10,6 +10,7 @@ pub struct PointI32 {
     pub y: i32,
 }
 
+#[allow(dead_code)]
 impl Point {
     pub fn rotate(&self, angle: f32) -> Point {
       Point {
@@ -23,9 +24,14 @@ impl Point {
         y: self.y + y,        
       } 
     }
+
+    pub fn eq(&self, other: &Self) -> bool {
+      self.x == other.x && self.y == other.y
+    }
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct Vector2 {
   pub x: f32,
   pub y: f32,
@@ -38,6 +44,7 @@ pub struct Vector3 {
   pub z: f32,
 }
 
+#[allow(dead_code)]
 impl Vector3 {
   pub fn new() -> Vector3 {
     Vector3 {
@@ -48,7 +55,7 @@ impl Vector3 {
   }
 
   pub fn normal(&self) -> Vector3 {
-    let len = (self.x*self.x + self.y*self.y + self.z*self.z).sqrt();
+    let len = self.len();
     if len < 1e-8 {
       if self.x >= self.y && self.x >= self.z {
         return Vector3{ x: 1.0, y: 0.0, z: 0.0 };
@@ -98,7 +105,7 @@ impl Vector3 {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Vector4 {
   pub x: f32,
   pub y: f32,
@@ -106,9 +113,10 @@ pub struct Vector4 {
   pub w: f32,
 }
 
+#[allow(dead_code)]
 impl Vector4 {
-  pub fn new() -> Vector4 {
-    Vector4 {
+  pub fn new() -> Self {
+    Self {
       x: 0.0,
       y: 0.0,
       z: 0.0,
@@ -116,8 +124,8 @@ impl Vector4 {
     }
   }
 
-  pub fn multiply(&self, m: &Matrix4) -> Vector4 {
-    Vector4 {
+  pub fn multiply(&self, m: &Matrix4) -> Self {
+    Self {
       x: self.x * m.m[0][0] + self.y * m.m[1][0] + self.z * m.m[2][0] + self.w * m.m[3][0],
       y: self.x * m.m[0][1] + self.y * m.m[1][1] + self.z * m.m[2][1] + self.w * m.m[3][1],
       z: self.x * m.m[0][2] + self.y * m.m[1][2] + self.z * m.m[2][2] + self.w * m.m[3][2],
@@ -125,9 +133,9 @@ impl Vector4 {
     }
   }
 
-  pub fn normal(&self) -> Vector4 {
+  pub fn normal(&self) -> Self {
     let len = (self.x*self.x + self.y*self.y + self.z*self.z + self.w*self.w).sqrt();
-    Vector4 {
+    Self {
       x: self.x / len,
       y: self.y / len,
       z: self.z / len,
@@ -135,8 +143,8 @@ impl Vector4 {
     }
   }
 
-  pub fn add(&self, v: &Vector4) -> Vector4 {
-    Vector4 {
+  pub fn add(&self, v: &Self) -> Self {
+    Self {
       x: self.x + v.x,
       y: self.y + v.y,
       z: self.z + v.z,
@@ -144,8 +152,8 @@ impl Vector4 {
     }
   }
 
-  pub fn sub(&self, v: &Vector4) -> Vector4 {
-    Vector4 {
+  pub fn sub(&self, v: &Self) -> Self {
+    Self {
       x: self.x - v.x,
       y: self.y - v.y,
       z: self.z - v.z,
@@ -153,8 +161,8 @@ impl Vector4 {
     }
   }
 
-  pub fn scale(&self, a: f32) -> Vector4 {
-    Vector4 {
+  pub fn scale(&self, a: f32) -> Self {
+    Self {
       x: self.x * a,
       y: self.y * a,
       z: self.z * a,
@@ -162,17 +170,21 @@ impl Vector4 {
     }
   }
 
-  pub fn dot(&self, v: &Vector4) -> f32 {
+  pub fn dot(&self, v: &Self) -> f32 {
     return self.x*v.x + self.y*v.y + self.z*v.z + self.w*v.w;
   }
 
-  pub fn cross(&self, v: &Vector4) -> Vector4 {
-    Vector4 {
+  pub fn cross(&self, v: &Self) -> Self {
+    Self {
       x: self.y * v.z - self.z * v.y,
       y: self.x * v.z - self.z * v.x,
       z: self.x * v.y - self.y * v.x,
       w: 1.0,
     }
+  }
+
+  pub fn eq(&self, other: &Self) -> bool {
+    self.x == other.x && self.y == other.y && self.z == other.z && self.w == other.w
   }
 }
 
@@ -181,6 +193,7 @@ pub struct Matrix4 {
   pub m: [[f32; 4]; 4],
 }
 
+#[allow(dead_code)]
 impl Matrix4 {
   pub fn zero() -> Matrix4 {
     Matrix4 {
@@ -339,15 +352,39 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_vertex_matrix_multiply() {
+    fn test_vector4_add() {
+        let a = Vector4{ x: 10.0, y: 20.0, z: 30.0, w: 40.0 };
+        let expected = Vector4{ x: 11.1, y: 22.2, z: 33.3, w: 44.4 };
+        assert_eq!(expected, a.add(&Vector4{ x: 1.1, y: 2.2, z: 3.3, w: 4.4 }));
+    }
+
+    #[test]
+    fn test_vector4_sub() {
+        let a = Vector4{ x: 11.1, y: 22.2, z: 33.3, w: 44.4 };
+        let expected = Vector4{ x: 10.0, y: 20.0, z: 30.0, w: 40.0 };
+        assert_eq!(expected, a.sub(&Vector4{ x: 1.1, y: 2.2, z: 3.3, w: 4.4 }));
+    }
+
+    #[test]
+    fn test_vector4_scale() {
+        let a = Vector4{ x: 1.1, y: 2.2, z: 3.3, w: 4.4 };
+        let expected = Vector4{ x: 11.0, y: 22.0, z: 33.0, w: 44.0 };
+        assert_eq!(expected, a.scale(10.0));
+    }
+
+    #[test]
+    fn test_vector4_dot() {
+        let a = Vector4{ x: 2.0, y: 3.0, z: 4.0, w: 5.0 };
+        assert_eq!(40.0 + 90.0 + 160.0 + 250.0, a.dot(&Vector4{ x: 20.0, y: 30.0, z: 40.0, w: 50.0 }));
+    }
+
+
+    #[test]
+    fn test_vector_matrix4_multiply() {
         let vertex = Vector4 { x: 4.0, y: 3.0, z: 2.0, w: 1.0 };
         let matrix = Matrix4::identity();
-
         let transformed = vertex.multiply(&matrix);
 
-        assert_eq!(transformed.x, vertex.x);       
-        assert_eq!(transformed.y, vertex.y);       
-        assert_eq!(transformed.z, vertex.z);       
-        assert_eq!(transformed.w, vertex.w);       
+        assert_eq!(transformed, vertex);       
     }
 }

@@ -65,7 +65,8 @@ impl Texture {
 }
 
 // render top half of triangle (y2 == y3)
-fn draw_triangle_top(target: &mut RenderTarget, c: &Color, p1: math::Point, p2: math::Point, p3: math::Point) {
+#[allow(dead_code)]
+fn draw_triangle_top(target: &mut RenderTarget, c: &Color, p1: &math::Point, p2: &math::Point, p3: &math::Point) {
     let dx1 = (p3.x - p1.x) / (p3.y - p1.y);
     let dx2 = (p2.x - p1.x) / (p2.y - p1.y);
 
@@ -99,7 +100,8 @@ fn draw_triangle_top(target: &mut RenderTarget, c: &Color, p1: math::Point, p2: 
 }
 
 // render bottom half of triangle (y1 == y2)
-fn draw_triangle_bottom(target: &mut RenderTarget, c: &Color, p1: math::Point, p2: math::Point, p3: math::Point) {
+#[allow(dead_code)]
+fn draw_triangle_bottom(target: &mut RenderTarget, c: &Color, p1: &math::Point, p2: &math::Point, p3: &math::Point) {
     let dx1 = (p3.x - p1.x) / (p3.y - p1.y);
     let dx2 = (p3.x - p2.x) / (p3.y - p2.y);
 
@@ -130,6 +132,7 @@ fn draw_triangle_bottom(target: &mut RenderTarget, c: &Color, p1: math::Point, p
     }
 }
 
+#[allow(dead_code)]
 pub fn draw_triangle(target: &mut RenderTarget, c: &Color, p1: math::Point, p2: math::Point, p3: math::Point) {
     let mut high = p1;
     let mut mid = p2;
@@ -151,28 +154,31 @@ pub fn draw_triangle(target: &mut RenderTarget, c: &Color, p1: math::Point, p2: 
     // log!("srt {},{} {},{} {},{}", hi_x, hi_y, mi_x, mi_y, lo_x, lo_y);
 
     if mid.y == low.y {
-        draw_triangle_top(target, c, high, mid, low);
+        draw_triangle_top(target, c, &high, &mid, &low);
     } else if high.y == mid.y {
-        draw_triangle_bottom(target, c, high, mid, low);
+        draw_triangle_bottom(target, c, &high, &mid, &low);
     } else {
         let p4 = math::Point{
             x: high.x + ((mid.y - high.y) / (low.y - high.y)) * (low.x - high.x),
             y: mid.y,
         };
 
-        draw_triangle_top(target, c, high, mid, p4);
-        draw_triangle_bottom(target, c, mid, p4, low);
+        draw_triangle_top(target, c, &high, &mid, &p4);
+        draw_triangle_bottom(target, c, &mid, &p4, &low);
     }
 }
 
+#[allow(dead_code)]
 fn orient2d(a: &math::PointI32, b: &math::PointI32, cx: i32, cy: i32) -> i32 {
     return (b.x-a.x)*(cy-a.y) - (b.y-a.y)*(cx-a.x);
 }
 
+#[allow(dead_code)]
 fn orient2df(a: &math::Point, b: &math::Point, cx: f32, cy: f32) -> f32 {
     return (b.x-a.x)*(cy-a.y) - (b.y-a.y)*(cx-a.x);
 }
 
+#[allow(dead_code)]
 fn to_screen_point(p: &math::Point) -> math::PointI32 {
     return math::PointI32 {
         x: (p.x + 0.5) as i32,
@@ -180,6 +186,7 @@ fn to_screen_point(p: &math::Point) -> math::PointI32 {
     }
 }
 
+#[allow(dead_code)]
 fn vec3_to_screen_point(p: &math::Vector3) -> math::PointI32 {
     return math::PointI32 {
         x: (p.x + 0.5) as i32,
@@ -187,6 +194,7 @@ fn vec3_to_screen_point(p: &math::Vector3) -> math::PointI32 {
     }
 }
 
+#[allow(dead_code)]
 pub fn draw_triangle_barycentric(target: &mut RenderTarget, c: &Color, p1: math::Point, p2: math::Point, p3: math::Point) {
     let v0 = to_screen_point(&p1);
     let v1 = to_screen_point(&p2);
@@ -214,7 +222,7 @@ pub fn draw_triangle_barycentric(target: &mut RenderTarget, c: &Color, p1: math:
         let mut w2 = w2_row;
 
         let start_i = (((_y as u32 * target.width) + minx as u32) * 4u32) as usize;
-        let end_i = start_i + target.width as usize;
+        let end_i = (((_y as u32 * target.width) + (maxx + 1) as u32) * 4u32) as usize;
 
         let slice = &mut target.buffer[start_i..end_i];
         for x in slice.chunks_exact_mut(4) {
@@ -247,6 +255,7 @@ pub fn draw_triangle_barycentric(target: &mut RenderTarget, c: &Color, p1: math:
     }
 }
 
+#[allow(dead_code)]
 pub fn draw_triangle_barycentric_z(target: &mut RenderTarget, c: &Color, p0: math::Vector3, p1: math::Vector3, p2: math::Vector3) {
     let v0 = vec3_to_screen_point(&p2);
     let v1 = vec3_to_screen_point(&p1);

@@ -21,8 +21,8 @@ pub struct CanvasRenderer {
     width: u32,
     height: u32,
     buffer: Vec<u8>,
-    cameraPos: math::Vector3,
-    cameraTar: math::Vector3,
+    camera_pos: math::Vector3,
+    camera_tar: math::Vector3,
     scene: render::scene::Scene,
     texture: render::Texture,
 }
@@ -55,22 +55,22 @@ impl CanvasRenderer {
             width,
             height,
             buffer,
-            cameraPos: math::Vector3{x: 0.0, y: 0.0, z: 1.0},
-            cameraTar: math::Vector3{x: 0.0, y: 0.0, z: 0.0},
+            camera_pos: math::Vector3{x: 0.0, y: 0.0, z: 1.0},
+            camera_tar: math::Vector3{x: 0.0, y: 0.0, z: 0.0},
             scene,
             texture: render::Texture{ data: textdata, width: 256, height: 256 },
         }
     }
 
-    pub fn setCameraTarget(&mut self, x: f32, y: f32, z: f32) {
-        self.cameraTar = math::Vector3{x: x, y: y, z: z};
+    pub fn set_camera_target(&mut self, x: f32, y: f32, z: f32) {
+        self.camera_tar = math::Vector3{x: x, y: y, z: z};
     }
 
-    pub fn setCameraPosition(&mut self, x: f32, y: f32, z: f32) {
-        self.cameraPos = math::Vector3{x: x, y: y, z: z};
+    pub fn set_camera_position(&mut self, x: f32, y: f32, z: f32) {
+        self.camera_pos = math::Vector3{x: x, y: y, z: z};
     }
 
-    pub fn setTexture(&mut self, data: Vec<u8>, width: i32, height: i32) {
+    pub fn set_texture(&mut self, data: Vec<u8>, width: i32, height: i32) {
         self.texture = render::Texture{data: data, width: width as u32, height: height as u32}
     }
 
@@ -95,8 +95,8 @@ impl CanvasRenderer {
             p[3] = 255;
         }
 
-        self.scene.camera.position = math::Vector3{ x: self.cameraPos.x, y: self.cameraPos.y, z: self.cameraPos.z };
-        self.scene.camera.target = math::Vector3{ x: self.cameraTar.x, y: self.cameraTar.y, z: self.cameraTar.z };
+        self.scene.camera.position = math::Vector3{ x: self.camera_pos.x, y: self.camera_pos.y, z: self.camera_pos.z };
+        self.scene.camera.target = math::Vector3{ x: self.camera_tar.x, y: self.camera_tar.y, z: self.camera_tar.z };
 
         self.scene.draw(&mut current_target);
 

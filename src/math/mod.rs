@@ -55,7 +55,7 @@ impl Vector3 {
   }
 
   pub fn normal(&self) -> Vector3 {
-    let len = (self.x*self.x + self.y*self.y + self.z*self.z).sqrt();
+    let len = self.len();
     if len < 1e-8 {
       if self.x >= self.y && self.x >= self.z {
         return Vector3{ x: 1.0, y: 0.0, z: 0.0 };

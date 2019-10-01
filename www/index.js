@@ -21,11 +21,11 @@ const loop = () => {
     //     150 + Math.sin(2 * Math.PI * frame / 512),
     //     Math.sin(2 * Math.PI * frame / 512) * 250);
     // renderer.setCameraTarget(0, 100, 0);
-    renderer.setCameraPosition(
+    renderer.set_camera_position(
         Math.cos(2 * Math.PI * frame / 512) * 2.5,
         1.50 + Math.sin(2 * Math.PI * frame / 512),
         Math.sin(2 * Math.PI * frame / 300) * 2.50);
-    renderer.setCameraTarget(0, 0, 0);
+    renderer.set_camera_target(0, 0, 0);
     renderer.render();
     frame++;
 
